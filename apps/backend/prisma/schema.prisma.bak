@@ -1,0 +1,565 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String      @id
+  name             String
+  email            String      @unique
+  emailVerified    Boolean     @default(false)
+  image            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  role             String?
+  banned           Boolean?    @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  twoFactorEnabled Boolean?    @default(false)
+  
+  // Custom fields for educational institution
+  firstName    String?
+  lastName     String?
+  surname      String?   @default("")
+  gender       Gender?   @default(MALE)
+  phoneNumber  String?
+  isActive     Boolean   @default(true)
+  departmentId String?
+  facultyId    String?
+  staffId      String?   @unique
+  studentId    String?   @unique
+  lastLogin    DateTime?
+
+  // Relations
+  department Department? @relation("UserDepartment", fields: [departmentId], references: [id])
+  faculty    Faculty?    @relation("UserFaculty", fields: [facultyId], references: [id])
+
+  // Department HOD relation
+  managedDepartment Department? @relation("DepartmentHOD")
+
+  // Faculty Dean relation
+  managedFaculty Faculty? @relation("FacultyDean")
+
+  // Student/Staff profile relations
+  studentProfile Student?
+  staffProfile   Staff?
+
+  // Approval relations
+  hodApprovals    Approval[] @relation("HODApproval")
+  deanApprovals   Approval[] @relation("DeanApproval")
+  senateApprovals Approval[] @relation("SenateApproval")
+
+  // BetterAuth relations
+  sessions         Session[]
+  accounts         Account[]
+  twofactors       TwoFactor[]
+  passkeys         Passkey[]
+
+  @@index([departmentId])
+  @@index([facultyId])
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@index([identifier])
+  @@map("verification")
+}
+
+model TwoFactor {
+  id          String @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
+}
+
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID String    @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime?
+  aaguid       String?
+
+  @@index([userId])
+  @@map("passkey")
+}
+
+// Custom models for educational institution
+
+model Faculty {
+  id          String       @id @default(cuid())
+  name        String
+  code        String       @unique
+  description String?
+  deanId      String?      @unique
+  dean        User?        @relation("FacultyDean", fields: [deanId], references: [id])
+  departments Department[]
+  users       User[]       @relation("UserFaculty")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("faculty")
+}
+
+model Department {
+  id              String             @id @default(cuid())
+  name            String
+  code            String             @unique
+  description     String?
+  facultyId       String
+  hodId           String?            @unique
+  numberOfYears   Int                @default(4)
+  hod             User?              @relation("DepartmentHOD", fields: [hodId], references: [id])
+  faculty         Faculty            @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  courses         Course[]
+  courseOfferings DepartmentCourse[]
+  users           User[]             @relation("UserDepartment")
+  students        Student[]
+  staff           Staff[]
+  levels          DepartmentLevel[]
+  gradeScales     GradeScale[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([facultyId])
+  @@index([hodId])
+  @@map("department")
+}
+
+model DepartmentLevel {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  level        Int
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([departmentId, level])
+  @@map("department_level")
+}
+
+model GradeScale {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  grade        String
+  minScore     Float
+  maxScore     Float
+  gradePoint   Float
+  description  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([departmentId, grade])
+  @@map("grade_scale")
+}
+
+model Course {
+  id                  String             @id @default(cuid())
+  code                String             @unique
+  title               String
+  description         String?
+  credits             Int
+  departmentId        String
+  semester            Semester
+  academicYear        String
+  level               Int                @default(100)
+  isActive            Boolean            @default(true)
+  department          Department         @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  instructors         CourseInstructor[]
+  enrollments         Enrollment[]
+  departmentOfferings DepartmentCourse[]
+  results             Result[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([departmentId])
+  @@map("course")
+}
+
+model CourseInstructor {
+  id           String   @id @default(cuid())
+  courseId     String
+  instructorId String
+  isPrimary    Boolean  @default(false)
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor   Staff    @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([courseId, instructorId])
+  @@map("course_instructor")
+}
+
+model DepartmentCourse {
+  id           String     @id @default(cuid())
+  departmentId String
+  courseId     String
+  courseType   CourseType @default(ELECTIVE)
+  semester     Semester?
+  level        Int?
+  academicYear String?
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([departmentId, courseId, semester, level])
+  @@map("department_course")
+}
+
+model Enrollment {
+  id         String           @id @default(cuid())
+  studentId  String
+  courseId   String
+  status     EnrollmentStatus @default(ACTIVE)
+  enrolledAt DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  grade      Grade?
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("enrollment")
+}
+
+model Grade {
+  id           String     @id @default(cuid())
+  enrollmentId String     @unique
+  studentId    String
+  score        Float
+  grade        String
+  remarks      String?
+  gradedAt     DateTime   @default(now())
+  gradedBy     String
+  updatedAt    DateTime   @updatedAt
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("grade")
+}
+
+model Result {
+  id               String       @id @default(cuid())
+  studentId        String
+  courseId         String
+  ca               Float?
+  exam             Float?
+  score            Float
+  grade            String
+  gradePoint       Float
+  totalGradePoints Float?
+  status           ResultStatus @default(PENDING)
+  semester         Semester
+  session          String
+  uploadedById     String
+  uploadedBy       Staff        @relation(fields: [uploadedById], references: [id])
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student          Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  approval         Approval?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([studentId, courseId, semester, session])
+  @@map("result")
+}
+
+model Approval {
+  id                 String         @id @default(cuid())
+  resultId           String         @unique
+  result             Result         @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  hodStatus          ApprovalStatus @default(PENDING)
+  hodApprovedById    String?
+  hodApprovedBy      User?          @relation("HODApproval", fields: [hodApprovedById], references: [id])
+  hodApprovedAt      DateTime?
+  hodRemarks         String?
+  deanStatus         ApprovalStatus @default(PENDING)
+  deanApprovedById   String?
+  deanApprovedBy     User?          @relation("DeanApproval", fields: [deanApprovedById], references: [id])
+  deanApprovedAt     DateTime?
+  deanRemarks        String?
+  senateStatus       ApprovalStatus @default(PENDING)
+  senateApprovedById String?
+  senateApprovedBy   User?          @relation("SenateApproval", fields: [senateApprovedById], references: [id])
+  senateApprovedAt   DateTime?
+  senateRemarks      String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@map("approval")
+}
+
+model Student {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matricNumber   String         @unique
+  admissionDate  DateTime       @default(now())
+  graduationDate DateTime?
+  programId      String?
+  level          Int            @default(100)
+  cgpa           Float?         @default(0)
+  status         StudentStatus  @default(ACTIVE)
+  departmentId   String?
+  department     Department?    @relation(fields: [departmentId], references: [id])
+  enrollments    Enrollment[]
+  grades         Grade[]
+  results        Result[]
+  payments       Payment[]
+  resultAccess   ResultAccess[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([departmentId])
+  @@index([userId])
+  @@map("student")
+}
+
+model Staff {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffNumber     String             @unique
+  designation     String?
+  employmentDate  DateTime           @default(now())
+  employmentType  EmploymentType     @default(FULL_TIME)
+  departmentId    String?
+  department      Department?        @relation(fields: [departmentId], references: [id])
+  qualifications  String?
+  specialization  String?
+  courses         CourseInstructor[]
+  uploadedResults Result[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([departmentId])
+  @@index([userId])
+  @@map("staff")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  studentId             String
+  student               Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount                Float
+  currency              String        @default("NGN")
+  paymentType           PaymentType   @default(RESULT_ACCESS)
+  status                PaymentStatus @default(PENDING)
+  paystackReference     String        @unique
+  paystackAccessCode    String?
+  paystackTransactionId String?
+  paystackChannel       String?
+  paystackPaidAt        DateTime?
+  semester              Semester
+  session               String
+  metadata              Json?
+  resultAccess          ResultAccess?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([paystackReference])
+  @@map("payment")
+}
+
+model ResultAccess {
+  id          String    @id @default(cuid())
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  paymentId   String    @unique
+  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  semester    Semester
+  session     String
+  accessCount Int       @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([studentId, semester, session])
+  @@index([studentId])
+  @@map("result_access")
+}
+
+model Settings {
+  id                   String   @id @default(cuid())
+  key                  String   @unique
+  currentSession       String
+  currentSemester      Semester
+  registrationOpen     Boolean  @default(false)
+  resultAccessFee      Float    @default(0)
+  lateRegistrationFee  Float    @default(0)
+  resultPublishEnabled Boolean  @default(false)
+  maintenanceMode      Boolean  @default(false)
+  maintenanceMessage   String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model AcademicSession {
+  id        String   @id @default(cuid())
+  session   String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("academic_session")
+}
+
+model DeviceCode {
+  id              String    @id
+  deviceCode      String
+  userCode        String
+  userId          String?
+  expiresAt       DateTime
+  status          String
+  lastPolledAt    DateTime?
+  pollingInterval Int?
+  clientId        String?
+  scope           String?
+
+  @@map("deviceCode")
+}
+
+// Enums
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  WITHDRAWN
+}
+
+enum CourseType {
+  COMPULSORY
+  ELECTIVE
+}
+
+enum StudentStatus {
+  ACTIVE
+  SUSPENDED
+  GRADUATED
+  WITHDRAWN
+  DEFERRED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  VISITING
+}
+
+enum Semester {
+  FIRST
+  SECOND
+}
+
+enum ResultStatus {
+  PENDING
+  HOD_APPROVED
+  DEAN_APPROVED
+  SENATE_APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+  REFUNDED
+}
+
+enum PaymentType {
+  RESULT_ACCESS
+  TUITION
+  REGISTRATION
+  OTHER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
