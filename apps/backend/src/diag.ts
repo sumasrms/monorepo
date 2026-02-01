@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-async function main() {
+function main() {
   const prisma = new PrismaClient();
   const models = Object.keys(prisma).filter(
     (k) => !k.startsWith('$') && !k.startsWith('_'),
@@ -13,4 +13,4 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main();

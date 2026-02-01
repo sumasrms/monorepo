@@ -22,9 +22,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const gqlCtx = GqlExecutionContext.create(context).getContext();
+    const gqlCtx = GqlExecutionContext.create(context).getContext<{
+      req: { user?: { role?: string } };
+      request: { user?: { role?: string } };
+    }>();
     const req = gqlCtx.req || gqlCtx.request;
-    const user = req.user as { role?: string } | undefined;
+    const user = req.user;
 
     if (!user || !user.role) {
       throw new ForbiddenException('User has no role assigned');

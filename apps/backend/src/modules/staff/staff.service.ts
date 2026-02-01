@@ -90,7 +90,7 @@ export class StaffService {
       });
 
       // Create staff profile
-      const staffData: any = {
+      const staffData: Prisma.StaffCreateInput = {
         user: { connect: { id: user.id } },
         staffNumber,
         institutionalRank,
@@ -128,7 +128,7 @@ export class StaffService {
         });
       }
 
-      const staffUpdateData: any = {
+      const staffUpdateData: Prisma.StaffUpdateInput = {
         institutionalRank: input.institutionalRank,
         designation: input.designation,
         dateOfBirth: input.dateOfBirth,
@@ -173,7 +173,7 @@ export class StaffService {
         response.errorCount++;
         response.errors.push({
           row: i + 1,
-          error: error.message || 'Unknown error',
+          error: (error as Error).message || 'Unknown error',
         });
       }
     }

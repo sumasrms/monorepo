@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { UploadApiErrorResponse, UploadApiResponse, v2 } from 'cloudinary';
-import toStream from 'buffer-to-stream';
+import {
+  ConfigAndUrlOptions,
+  TransformationOptions,
+  UploadApiErrorResponse,
+  UploadApiResponse,
+  v2,
+} from 'cloudinary';
+import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
@@ -21,14 +27,14 @@ export class CloudinaryService {
           resource_type: 'image',
         },
         (error, result) => {
-          if (error) return reject(error);
+          if (error) return reject(new Error(error.message || 'Upload failed'));
           if (!result)
             return reject(new Error('Upload failed: No result returned'));
           resolve(result);
         },
       );
 
-      toStream(file.buffer).pipe(upload);
+      Readable.from(file.buffer).pipe(upload);
     });
   }
 
@@ -51,14 +57,14 @@ export class CloudinaryService {
           resource_type: resourceType,
         },
         (error, result) => {
-          if (error) return reject(error);
+          if (error) return reject(new Error(error.message || 'Upload failed'));
           if (!result)
             return reject(new Error('Upload failed: No result returned'));
           resolve(result);
         },
       );
 
-      toStream(file.buffer).pipe(upload);
+      Readable.from(file.buffer).pipe(upload);
     });
   }
 
@@ -81,10 +87,13 @@ export class CloudinaryService {
    * @param options - Optional transformation options
    * @returns Signed URL
    */
-  getSignedUrl(publicId: string, options?: any): string {
+  getSignedUrl(
+    publicId: string,
+    options?: TransformationOptions | ConfigAndUrlOptions,
+  ): string {
     return v2.url(publicId, {
       sign_url: true,
-      ...options,
+      ...(options || {}),
     });
   }
 

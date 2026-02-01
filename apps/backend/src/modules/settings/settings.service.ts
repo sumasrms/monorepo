@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  UpdateSettingInput,
-  GetSettingsByCategoryInput,
-} from './dto/settings.input';
+import { UpdateSettingInput } from './dto/settings.input';
 
 @Injectable()
 export class SettingsService {

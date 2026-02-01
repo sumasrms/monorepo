@@ -3,6 +3,7 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { GraphQLUpload } from 'graphql-upload-ts';
 import type { FileUpload } from 'graphql-upload-ts';
 import { Readable } from 'stream';
+import { UploadApiResponse } from 'cloudinary';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { UploadResponse } from '../../common/cloudinary/dto/upload-response.dto';
 import { AuthGuard } from '../../common/auth/auth.guard';
@@ -19,7 +20,7 @@ export class UploadResolver {
     @Args({ name: 'file', type: () => GraphQLUpload })
     file: FileUpload,
   ): Promise<UploadResponse> {
-    const { createReadStream, filename, mimetype } = file;
+    const { filename, mimetype } = file;
 
     // Validate file type
     if (!mimetype.startsWith('image/')) {
@@ -27,7 +28,7 @@ export class UploadResolver {
     }
 
     // Convert stream to buffer
-    const buffer = await this.streamToBuffer(createReadStream());
+    const buffer = await this.streamToBuffer(file.createReadStream());
 
     const multerFile: Express.Multer.File = {
       buffer,
@@ -42,10 +43,10 @@ export class UploadResolver {
       path: '',
     };
 
-    const result = await this.cloudinaryService.uploadImage(
+    const result = (await this.cloudinaryService.uploadImage(
       multerFile,
       'images',
-    );
+    )) as UploadApiResponse;
 
     return {
       url: result.url,
@@ -77,9 +78,9 @@ export class UploadResolver {
     @Args({ name: 'folder', type: () => String, nullable: true })
     folder?: string,
   ): Promise<UploadResponse> {
-    const { createReadStream, filename, mimetype } = file;
+    const { filename, mimetype } = file;
 
-    const buffer = await this.streamToBuffer(createReadStream());
+    const buffer = await this.streamToBuffer(file.createReadStream());
 
     const multerFile: Express.Multer.File = {
       buffer,
@@ -94,11 +95,11 @@ export class UploadResolver {
       path: '',
     };
 
-    const result = await this.cloudinaryService.uploadFile(
+    const result = (await this.cloudinaryService.uploadFile(
       multerFile,
       folder || 'documents',
       'auto',
-    );
+    )) as UploadApiResponse;
 
     return {
       url: result.url,
@@ -119,11 +120,12 @@ export class UploadResolver {
     @Args({ name: 'resourceType', nullable: true, defaultValue: 'image' })
     resourceType?: 'image' | 'video' | 'raw',
   ): Promise<boolean> {
-    const result = await this.cloudinaryService.deleteFile(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const result: any = await this.cloudinaryService.deleteFile(
       publicId,
       resourceType,
     );
-    return result.result === 'ok';
+    return (result as { result: string }).result === 'ok';
   }
 
   /**
@@ -132,7 +134,7 @@ export class UploadResolver {
   private streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('data', (chunk) => chunks.push(chunk as Buffer));
       stream.on('error', reject);
       stream.on('end', () => resolve(Buffer.concat(chunks)));
     });

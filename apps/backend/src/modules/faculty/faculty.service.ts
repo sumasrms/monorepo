@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
   CreateFacultyInput,
   UpdateFacultyInput,
@@ -18,12 +19,15 @@ export class FacultyService {
       return await this.prisma.faculty.create({
         data,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        throw new ConflictException(
-          `A faculty with this ${field} already exists.`,
-        );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          throw new ConflictException(
+            `A faculty with this ${field} already exists.`,
+          );
+        }
       }
       throw error;
     }
@@ -60,15 +64,18 @@ export class FacultyService {
         where: { id },
         data,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        throw new ConflictException(
-          `A faculty with this ${field} already exists.`,
-        );
-      }
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Faculty not found.');
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          throw new ConflictException(
+            `A faculty with this ${field} already exists.`,
+          );
+        }
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Faculty not found.');
+        }
       }
       throw new ConflictException(
         'Unable to update faculty. Please try again.',

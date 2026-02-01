@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
   CreateDepartmentInput,
   UpdateDepartmentInput,
@@ -28,17 +29,20 @@ export class DepartmentService {
       return await this.prisma.department.create({
         data,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        if (field === 'hodId') {
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          if (field === 'hodId') {
+            throw new ConflictException(
+              'This staff member is already assigned as Head of Department for another department.',
+            );
+          }
           throw new ConflictException(
-            'This staff member is already assigned as Head of Department for another department.',
+            `A department with this ${field} already exists.`,
           );
         }
-        throw new ConflictException(
-          `A department with this ${field} already exists.`,
-        );
       }
       throw error;
     }
@@ -75,23 +79,26 @@ export class DepartmentService {
         where: { id },
         data,
       });
-    } catch (error: any) {
+    } catch (error) {
       // Handle Prisma unique constraint errors gracefully
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        if (field === 'hodId') {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          if (field === 'hodId') {
+            throw new ConflictException(
+              'This staff member is already assigned as Head of Department for another department.',
+            );
+          }
           throw new ConflictException(
-            'This staff member is already assigned as Head of Department for another department.',
+            `A department with this ${field} already exists.`,
           );
         }
-        throw new ConflictException(
-          `A department with this ${field} already exists.`,
-        );
-      }
 
-      // Handle other Prisma errors
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Department not found.');
+        // Handle other Prisma errors
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Department not found.');
+        }
       }
 
       // For any other error, throw a generic error without exposing internals

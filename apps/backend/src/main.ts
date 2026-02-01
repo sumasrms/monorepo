@@ -6,8 +6,6 @@ import {
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
 import { auth } from 'lib/auth';
-import { toNodeHandler } from 'better-auth/node';
-import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 
 async function bootstrap() {
@@ -15,8 +13,6 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
-
-  // app.setGlobalPrefix('api');
 
   const fastify = app.getHttpAdapter().getInstance();
 
@@ -28,13 +24,20 @@ async function bootstrap() {
   });
 
   // Hook to handle GraphQL multipart uploads
-  fastify.addHook('preHandler', async (request, reply) => {
+  interface MultipartFile {
+    filename: string;
+    mimetype: string;
+    encoding: string;
+    data: Buffer;
+  }
+
+  fastify.addHook('preHandler', async (request) => {
     // Only process GraphQL multipart requests
     if (request.url === '/graphql' && request.isMultipart?.()) {
       try {
         const parts = request.parts();
-        const fields: Record<string, any> = {};
-        const files: Record<string, any> = {};
+        const fields: Record<string, unknown> = {};
+        const files: Record<string, MultipartFile> = {};
 
         // Iterate through all multipart parts
         for await (const part of parts) {
@@ -57,17 +60,22 @@ async function bootstrap() {
         console.log('Files:', Object.keys(files));
 
         // Parse operations
-        const operations =
-          typeof fields.operations === 'string'
-            ? JSON.parse(fields.operations)
-            : fields.operations;
+        const operationsProp = fields.operations;
+        const operations = (
+          typeof operationsProp === 'string'
+            ? JSON.parse(operationsProp)
+            : operationsProp
+        ) as Record<string, any>;
 
         // Parse map
-        const map = fields.map
-          ? typeof fields.map === 'string'
-            ? JSON.parse(fields.map)
-            : fields.map
-          : {};
+        const mapProp = fields.map;
+        const map: Record<string, string[]> = (
+          mapProp
+            ? typeof mapProp === 'string'
+              ? JSON.parse(mapProp)
+              : mapProp
+            : {}
+        ) as Record<string, string[]>;
 
         console.log('Parsed operations:', operations);
         console.log('Parsed map:', map);
@@ -106,11 +114,12 @@ async function bootstrap() {
             // Map to variable paths
             const pathArray = Array.isArray(paths) ? paths : [paths];
             for (const path of pathArray) {
-              const parts = (path as string).split('.');
+              const parts = path.split('.');
               let current = operations;
 
               for (let i = 0; i < parts.length - 1; i++) {
                 if (!current[parts[i]]) current[parts[i]] = {};
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 current = current[parts[i]];
               }
 
@@ -121,6 +130,7 @@ async function bootstrap() {
         }
 
         // Set parsed body for Apollo
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (request as any).body = operations;
 
         console.log('Successfully processed multipart GraphQL request');
@@ -140,13 +150,7 @@ async function bootstrap() {
       },
     }),
   );
-  // await fastify.register(fastifyCors, {
-  //   origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
-  //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  //   credentials: true,
-  //   maxAge: 86400,
-  // });
+
   fastify.route({
     method: ['GET', 'POST'],
     url: '/api/auth/*',
@@ -157,9 +161,6 @@ async function bootstrap() {
         if (value) headers.append(key, value.toString());
       });
 
-      // Optionally add custom headers here
-      // headers.append('x-internal-tenantid', 'your-tenant-id');
-
       const req = new Request(url.toString(), {
         method: request.method,
         headers,
@@ -168,12 +169,12 @@ async function bootstrap() {
 
       const response = await auth.handler(req);
       reply.status(response.status);
-      response.headers.forEach((value, key) => reply.header(key, value));
+      response.headers.forEach((value, key) => {
+        reply.header(key, value);
+      });
       reply.send(response.body ? await response.text() : null);
     },
   });
-
-  // const corsURLS = ['http://localhost:3000'];
 
   app.enableCors({
     origin: [
@@ -189,4 +190,5 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 4000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
-bootstrap();
+
+void bootstrap();

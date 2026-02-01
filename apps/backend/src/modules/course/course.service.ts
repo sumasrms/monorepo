@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
   CreateCourseInput,
   UpdateCourseInput,
@@ -20,12 +21,15 @@ export class CourseService {
       return await this.prisma.course.create({
         data,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        throw new ConflictException(
-          `A course with this ${field} already exists.`,
-        );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          throw new ConflictException(
+            `A course with this ${field} already exists.`,
+          );
+        }
       }
       throw error;
     }
@@ -91,15 +95,18 @@ export class CourseService {
         where: { id },
         data,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        const field = error.meta?.target?.[0] || 'field';
-        throw new ConflictException(
-          `A course with this ${field} already exists.`,
-        );
-      }
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Course not found.');
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as string[];
+          const field = target?.[0] || 'field';
+          throw new ConflictException(
+            `A course with this ${field} already exists.`,
+          );
+        }
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Course not found.');
+        }
       }
       throw new ConflictException('Unable to update course. Please try again.');
     }

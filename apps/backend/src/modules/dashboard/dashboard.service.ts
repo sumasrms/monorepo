@@ -35,16 +35,6 @@ export class DashboardService {
   }
 
   async getAnalytics(): Promise<DashboardAnalytics> {
-    const studentsByFacultyRaw = await this.prisma.student.groupBy({
-      by: ['departmentId'],
-      _count: {
-        id: true,
-      },
-      where: {
-        departmentId: { not: null },
-      },
-    });
-
     // Since student -> department -> faculty, we need to aggregate properly.
     // However, Prisma groupBy is limited on joined relations.
     // A simpler approach for "Students per Faculty" chart:

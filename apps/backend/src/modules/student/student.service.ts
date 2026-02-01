@@ -11,6 +11,7 @@ import {
 } from './entities/student.entity';
 import { auth } from 'lib/auth';
 import { roles } from 'lib/permissions';
+import { Prisma, Gender } from '@prisma/client';
 
 @Injectable()
 export class StudentService {
@@ -80,14 +81,14 @@ export class StudentService {
         where: { id: user.id },
         data: {
           role: roles.STUDENT,
-          gender: gender as any, // Cast to match enum
+          gender: gender as Gender,
           departmentId,
           studentId: matricNumber,
         },
       });
 
       // Create student profile
-      const studentData: any = {
+      const studentData: Prisma.StudentCreateInput = {
         user: { connect: { id: user.id } },
         matricNumber,
         admissionDate,
@@ -116,13 +117,13 @@ export class StudentService {
           where: { id: student.userId },
           data: {
             name: input.name,
-            gender: input.gender as any,
+            gender: input.gender as Gender,
             departmentId: input.departmentId,
           },
         });
       }
 
-      const studentUpdateData: any = {
+      const studentUpdateData: Prisma.StudentUpdateInput = {
         matricNumber: input.matricNumber,
         admissionDate: input.admissionDate,
         level: input.level,
@@ -159,7 +160,7 @@ export class StudentService {
         response.errorCount++;
         response.errors.push({
           row: i + 1,
-          error: error.message || 'Unknown error',
+          error: (error as Error).message || 'Unknown error',
         });
       }
     }
