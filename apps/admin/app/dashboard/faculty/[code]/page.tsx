@@ -3,7 +3,11 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { graphqlClient } from "@/lib/graphql-client";
-import { GET_FACULTY_BY_CODE, REMOVE_FACULTY } from "@/lib/graphql/faculty";
+import {
+  GET_FACULTY_BY_CODE,
+  REMOVE_FACULTY,
+  UPDATE_FACULTY,
+} from "@/lib/graphql/faculty";
 import { CREATE_DEPARTMENT } from "@/lib/graphql/department";
 import {
   PopoverForm,
@@ -28,6 +32,13 @@ import {
 import Link from "next/link";
 import { StatCard } from "@/components/stat-card";
 import { cn } from "@workspace/ui/lib/utils";
+import { AssignRoleDialog } from "@/components/assign-role-dialog";
+import { toast } from "sonner";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 
 interface Stats {
   studentCount: number;
@@ -50,6 +61,12 @@ interface Faculty {
   code: string;
   description?: string;
   deanId?: string;
+  dean?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
   createdAt: string;
   updatedAt: string;
   stats?: Stats;
@@ -106,6 +123,21 @@ export default function FacultyDetailPage() {
     onError: () => setDeptFormState("idle"),
   });
 
+  const updateFacultyMutation = useMutation({
+    mutationFn: (input: { id: string; deanId: string }) =>
+      graphqlClient.request(UPDATE_FACULTY, {
+        id: input.id,
+        input: { deanId: input.deanId },
+      }),
+    onSuccess: () => {
+      toast.success("Dean assigned successfully");
+      queryClient.invalidateQueries({ queryKey: ["faculty", code] });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to assign dean: " + error.message);
+    },
+  });
+
   const removeFacultyMutation = useMutation({
     mutationFn: (id: string) => graphqlClient.request(REMOVE_FACULTY, { id }),
     onSuccess: () => {
@@ -119,6 +151,11 @@ export default function FacultyDetailPage() {
     if (!faculty) return;
     setDeptFormState("loading");
     createDeptMutation.mutate({ ...deptFormData, facultyId: faculty.id });
+  };
+
+  const handleAssignDean = async (userId: string) => {
+    if (!faculty) return;
+    await updateFacultyMutation.mutateAsync({ id: faculty.id, deanId: userId });
   };
 
   if (isLoading) return <div className="p-8">Loading faculty details...</div>;
@@ -136,10 +173,19 @@ export default function FacultyDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 relative">
-          <Button variant="outline" size="sm" className="gap-2">
-            <UserCheck size={16} />
-            Assign Dean
-          </Button>
+          <AssignRoleDialog
+            title="Assign Dean"
+            description="Select a staff member to assign as the Dean of this faculty."
+            roleName="Dean"
+            currentAssignee={faculty.dean}
+            onAssign={handleAssignDean}
+            trigger={
+              <Button variant="outline" size="sm" className="gap-2">
+                <UserCheck size={16} />
+                {faculty.dean ? "Change Dean" : "Assign Dean"}
+              </Button>
+            }
+          />
 
           <PopoverForm
             title="Create Department"
@@ -240,6 +286,25 @@ export default function FacultyDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Dean Card if assigned - Optional visual improvement */}
+      {faculty.dean && (
+        <div className="rounded-xl border bg-white p-4 dark:bg-neutral-950 flex items-center gap-4">
+          <Avatar className="h-12 w-12 border">
+            <AvatarImage src={faculty.dean.image} />
+            <AvatarFallback className="text-lg">
+              {faculty.dean.name.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">
+              Dean of Faculty
+            </p>
+            <p className="font-bold text-lg">{faculty.dean.name}</p>
+            {/* We could fetch more dean details if needed */}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

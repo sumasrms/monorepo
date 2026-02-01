@@ -22,6 +22,8 @@ import {
 } from "@workspace/ui/components/ui/sidebar";
 import { LucideIcon } from "lucide-react";
 import { DashboardHeader } from "@/components/header";
+import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import Image from "next/image";
 
 // Type definitions for menu items
 type MenuItem = {
@@ -93,7 +95,7 @@ export default function DashboardLayout({
         },
         {
           title: "Staffs",
-          url: "/dashboard/staffs",
+          url: "/dashboard/staff",
           icon: Users,
         },
         {
@@ -151,12 +153,12 @@ export default function DashboardLayout({
           </div>
         </SidebarBody>
       </Sidebar>
-      <div className="flex flex-1 flex-col overflow-hidden px-4 md:px-8">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 md:px-8 ">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto ">
-          <div className="h-full w-full rounded-tl-2xl border bg-background p-4 md:p-8 ">
+        <main className="flex-1 overflow-y-auto  ">
+          <ScrollArea className="h-full w-full rounded-tl-2xl border bg-background p-4 md:p-8 ">
             {children}
-          </div>
+          </ScrollArea>
         </main>
       </div>
     </div>
@@ -169,7 +171,7 @@ const Logo = () => {
       href="/dashboard"
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
-      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
+      <Image src="/logo.png" alt="Logo" width={24} height={24} />
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -187,7 +189,8 @@ const LogoIcon = () => {
       href="/dashboard"
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
-      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
+      <Image src="/logo.png" alt="Logo" width={24} height={24} />
+      {/* <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" /> */}
     </a>
   );
 };

@@ -24,9 +24,24 @@ export class DepartmentService {
       );
     }
 
-    return this.prisma.department.create({
-      data,
-    });
+    try {
+      return await this.prisma.department.create({
+        data,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const field = error.meta?.target?.[0] || 'field';
+        if (field === 'hodId') {
+          throw new ConflictException(
+            'This staff member is already assigned as Head of Department for another department.',
+          );
+        }
+        throw new ConflictException(
+          `A department with this ${field} already exists.`,
+        );
+      }
+      throw error;
+    }
   }
 
   async findAll() {
@@ -55,10 +70,35 @@ export class DepartmentService {
   async update(id: string, data: UpdateDepartmentInput) {
     await this.findOne(id);
 
-    return this.prisma.department.update({
-      where: { id },
-      data,
-    });
+    try {
+      return await this.prisma.department.update({
+        where: { id },
+        data,
+      });
+    } catch (error: any) {
+      // Handle Prisma unique constraint errors gracefully
+      if (error.code === 'P2002') {
+        const field = error.meta?.target?.[0] || 'field';
+        if (field === 'hodId') {
+          throw new ConflictException(
+            'This staff member is already assigned as Head of Department for another department.',
+          );
+        }
+        throw new ConflictException(
+          `A department with this ${field} already exists.`,
+        );
+      }
+
+      // Handle other Prisma errors
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Department not found.');
+      }
+
+      // For any other error, throw a generic error without exposing internals
+      throw new ConflictException(
+        'Unable to update department. Please try again.',
+      );
+    }
   }
 
   async remove(id: string) {

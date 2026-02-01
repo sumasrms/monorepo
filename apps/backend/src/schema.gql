@@ -2,6 +2,434 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AssignInstructorInput {
+  courseId: String!
+  instructorId: String!
+  isPrimary: Boolean! = false
+}
+
+input BorrowCourseInput {
+  courseId: String!
+  courseType: CourseType! = ELECTIVE
+  departmentId: String!
+  level: Int
+  semester: Semester
+}
+
+type BulkUploadError {
+  error: String!
+  row: Float!
+}
+
+type BulkUploadResponse {
+  errorCount: Float!
+  errors: [BulkUploadError!]!
+  successCount: Float!
+}
+
+type BulkUploadStudentError {
+  error: String!
+  row: Int!
+}
+
+type BulkUploadStudentResponse {
+  errorCount: Int!
+  errors: [BulkUploadStudentError!]!
+  successCount: Int!
+}
+
+type ChartDataPoint {
+  name: String!
+  value: Int!
+}
+
+type Course {
+  academicYear: String!
+  code: String!
+  createdAt: DateTime!
+  credits: Int!
+  department: Department
+  departmentId: String!
+  departmentOfferings: [DepartmentCourse!]
+  description: String
+  id: ID!
+  instructors: [CourseInstructor!]
+  isActive: Boolean!
+  level: Int!
+  semester: Semester!
+  title: String!
+  updatedAt: DateTime!
+}
+
+type CourseInstructor {
+  course: Course
+  courseId: String!
+  id: ID!
+  instructor: Staff
+  instructorId: String!
+  isPrimary: Boolean!
+}
+
+enum CourseType {
+  COMPULSORY
+  ELECTIVE
+}
+
+input CreateCourseInput {
+  academicYear: String!
+  code: String!
+  credits: Int!
+  departmentId: String!
+  description: String
+  level: Int! = 100
+  semester: Semester!
+  title: String!
+}
+
+input CreateDepartmentInput {
+  code: String!
+  description: String
+  facultyId: String!
+  hodId: String
+  name: String!
+  numberOfYears: Int! = 4
+}
+
+input CreateFacultyInput {
+  code: String!
+  deanId: String
+  description: String
+  name: String!
+}
+
+input CreateGradeScaleInput {
+  departmentId: String!
+  description: String
+  grade: String!
+  gradePoint: Float!
+  maxScore: Float!
+  minScore: Float!
+}
+
+input CreateStaffInput {
+  credentialKey: String
+  dateOfBirth: DateTime!
+  departmentId: String
+  designation: String
+  email: String!
+  employmentDate: DateTime!
+  employmentType: EmploymentType! = FULL_TIME
+  facultyId: String
+  gender: Gender
+  institutionalRank: String!
+  name: String!
+  staffNumber: String!
+}
+
+input CreateStudentInput {
+  admissionDate: DateTime!
+  credentialKey: String
+  departmentId: String!
+  email: String!
+  gender: String!
+  level: Int!
+  matricNumber: String!
+  name: String!
+  programId: String
+}
+
+type DashboardAnalytics {
+  studentsByFaculty: [ChartDataPoint!]!
+}
+
+type DashboardStats {
+  courseCount: Int!
+  departmentCount: Int!
+  facultyCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Department {
+  code: String!
+  createdAt: DateTime!
+  description: String
+  faculty: Faculty
+  facultyId: String!
+  hod: User
+  hodId: String
+  id: ID!
+  name: String!
+  numberOfYears: Int!
+  stats: DepartmentStats
+  updatedAt: DateTime!
+}
+
+type DepartmentCourse {
+  academicYear: String
+  course: Course
+  courseId: String!
+  courseType: CourseType!
+  department: Department
+  departmentId: String!
+  id: ID!
+  level: Int
+  semester: Semester
+}
+
+type DepartmentStats {
+  courseCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+enum EmploymentType {
+  CONTRACT
+  FULL_TIME
+  PART_TIME
+  VISITING
+}
+
+type Faculty {
+  code: String!
+  createdAt: DateTime!
+  dean: User
+  deanId: String
+  departments: [Department!]
+  description: String
+  id: ID!
+  name: String!
+  stats: FacultyStats
+  updatedAt: DateTime!
+}
+
+type FacultyStats {
+  courseCount: Int!
+  departmentCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+input GetSettingInput {
+  key: String!
+}
+
+input GetSettingsByCategoryInput {
+  category: String!
+}
+
+type GradeScale {
+  createdAt: DateTime!
+  departmentId: String!
+  description: String
+  grade: String!
+  gradePoint: Float!
+  id: ID!
+  maxScore: Float!
+  minScore: Float!
+  updatedAt: DateTime!
+}
+
+type Mutation {
+  assignInstructor(input: AssignInstructorInput!): Boolean!
+  borrowCourse(input: BorrowCourseInput!): Boolean!
+  bulkUploadStaff(inputs: [CreateStaffInput!]!): BulkUploadResponse!
+  bulkUploadStudents(inputs: [CreateStudentInput!]!): BulkUploadStudentResponse!
+  createCourse(input: CreateCourseInput!): Course!
+  createDepartment(input: CreateDepartmentInput!): Department!
+  createFaculty(input: CreateFacultyInput!): Faculty!
+  createGradeScale(input: CreateGradeScaleInput!): GradeScale!
+  createStaff(input: CreateStaffInput!): Staff!
+  createStudent(input: CreateStudentInput!): Student!
+  deleteSetting(key: String!): SystemSettings!
+  deleteUpload(publicId: String!, resourceType: String = "image"): Boolean!
+  removeCourse(id: ID!): Course!
+  removeCourseFromDepartment(courseId: String!, departmentId: String!): Boolean!
+  removeDepartment(id: ID!): Department!
+  removeFaculty(id: ID!): Faculty!
+  removeGradeScale(id: ID!): GradeScale!
+  removeStaff(id: ID!): Boolean!
+  resetSettingsCategory(category: String!): Boolean!
+  updateCourse(id: ID!, input: UpdateCourseInput!): Course!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  updateFaculty(id: ID!, input: UpdateFacultyInput!): Faculty!
+  updateGradeScale(id: ID!, input: UpdateGradeScaleInput!): GradeScale!
+  updateMultipleSettings(inputs: [UpdateSettingInput!]!): [SystemSettings!]!
+  updateProfileImage(image: String!): User!
+  updateSetting(input: UpdateSettingInput!): SystemSettings!
+  updateStaff(id: ID!, input: UpdateStaffInput!): Staff!
+  updateStudent(id: ID!, input: UpdateStudentInput!): Student!
+  uploadFile(file: Upload!, folder: String): UploadResponse!
+  uploadImage(file: Upload!): UploadResponse!
+  uploadMultipleImages(files: [Upload!]!): [UploadResponse!]!
+}
+
 type Query {
+  course(id: ID!): Course!
+  courseByCode(code: String!): Course!
+  courses: [Course!]!
+  dashboardAnalytics: DashboardAnalytics!
+  dashboardStats: DashboardStats!
+  department(id: ID!): Department!
+  departmentByCode(code: String!): Department!
+  departmentOfferings(departmentId: String!): [DepartmentCourse!]!
+  departments: [Department!]!
+  faculties: [Faculty!]!
+  faculty(id: ID!): Faculty!
+  facultyByCode(code: String!): Faculty!
+  getAllSettings: [SystemSettings!]!
+  getSetting(input: GetSettingInput!): SystemSettings
+  getSettingsByCategory(input: GetSettingsByCategoryInput!): [SystemSettings!]!
+  gradeScale(id: ID!): GradeScale!
+  gradeScales(departmentId: String!): [GradeScale!]!
   healthCheck: String!
+  recentActivities: [RecentActivity!]!
+  staff(id: ID!): Staff!
+  staffs: [Staff!]!
+  student(id: ID!): Student!
+  students: [Student!]!
+}
+
+type RecentActivity {
+  description: String!
+  id: String!
+  timestamp: DateTime!
+  type: String!
+}
+
+enum Semester {
+  FIRST
+  SECOND
+}
+
+type Staff {
+  dateOfBirth: DateTime!
+  departmentId: String
+  designation: String
+  employmentDate: DateTime!
+  employmentType: EmploymentType!
+  id: ID!
+  institutionalRank: String!
+  qualifications: String
+  specialization: String
+  staffNumber: String!
+  user: User!
+}
+
+type Student {
+  admissionDate: DateTime!
+  department: Department
+  departmentId: String
+  id: ID!
+  level: Int!
+  matricNumber: String!
+  programId: String
+  user: User!
+  userId: String!
+}
+
+type SystemSettings {
+  category: String!
+  createdAt: DateTime!
+  id: String!
+  key: String!
+  updatedAt: DateTime!
+  value: String!
+}
+
+input UpdateCourseInput {
+  academicYear: String
+  credits: Int
+  description: String
+  isActive: Boolean
+  level: Int
+  semester: Semester
+  title: String
+}
+
+input UpdateDepartmentInput {
+  code: String
+  description: String
+  facultyId: String
+  hodId: String
+  name: String
+  numberOfYears: Int
+}
+
+input UpdateFacultyInput {
+  code: String
+  deanId: String
+  description: String
+  name: String
+}
+
+input UpdateGradeScaleInput {
+  description: String
+  grade: String
+  gradePoint: Float
+  maxScore: Float
+  minScore: Float
+}
+
+input UpdateSettingInput {
+  category: String
+  key: String!
+  value: String!
+}
+
+input UpdateStaffInput {
+  dateOfBirth: DateTime
+  departmentId: String
+  designation: String
+  employmentDate: DateTime
+  employmentType: EmploymentType
+  facultyId: String
+  gender: Gender
+  institutionalRank: String
+  name: String
+}
+
+input UpdateStudentInput {
+  admissionDate: DateTime
+  credentialKey: String
+  departmentId: String
+  email: String
+  gender: String
+  level: Int
+  matricNumber: String
+  name: String
+  programId: String
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+type UploadResponse {
+  bytes: Float
+  format: String
+  height: Float
+  publicId: String!
+  resourceType: String
+  secureUrl: String!
+  url: String!
+  width: Float
+}
+
+type User {
+  email: String!
+  gender: Gender
+  id: ID!
+  image: String
+  name: String!
 }

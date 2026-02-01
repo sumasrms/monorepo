@@ -14,19 +14,19 @@ export class FacultyService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateFacultyInput) {
-    const existing = await this.prisma.faculty.findUnique({
-      where: { code: data.code },
-    });
-
-    if (existing) {
-      throw new ConflictException(
-        `Faculty with code ${data.code} already exists`,
-      );
+    try {
+      return await this.prisma.faculty.create({
+        data,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const field = error.meta?.target?.[0] || 'field';
+        throw new ConflictException(
+          `A faculty with this ${field} already exists.`,
+        );
+      }
+      throw error;
     }
-
-    return this.prisma.faculty.create({
-      data,
-    });
   }
 
   async findAll() {
@@ -55,10 +55,25 @@ export class FacultyService {
   async update(id: string, data: UpdateFacultyInput) {
     await this.findOne(id);
 
-    return this.prisma.faculty.update({
-      where: { id },
-      data,
-    });
+    try {
+      return await this.prisma.faculty.update({
+        where: { id },
+        data,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const field = error.meta?.target?.[0] || 'field';
+        throw new ConflictException(
+          `A faculty with this ${field} already exists.`,
+        );
+      }
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Faculty not found.');
+      }
+      throw new ConflictException(
+        'Unable to update faculty. Please try again.',
+      );
+    }
   }
 
   async remove(id: string) {

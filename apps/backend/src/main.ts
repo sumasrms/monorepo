@@ -8,17 +8,127 @@ import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
 import { auth } from 'lib/auth';
 import { toNodeHandler } from 'better-auth/node';
 import fastifyCors from '@fastify/cors';
+import fastifyMultipart from '@fastify/multipart';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
-    {
-      bodyParser: false,
-    },
   );
 
   // app.setGlobalPrefix('api');
+
+  const fastify = app.getHttpAdapter().getInstance();
+
+  // Register multipart plugin (required for request.parts())
+  await fastify.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+  });
+
+  // Hook to handle GraphQL multipart uploads
+  fastify.addHook('preHandler', async (request, reply) => {
+    // Only process GraphQL multipart requests
+    if (request.url === '/graphql' && request.isMultipart?.()) {
+      try {
+        const parts = request.parts();
+        const fields: Record<string, any> = {};
+        const files: Record<string, any> = {};
+
+        // Iterate through all multipart parts
+        for await (const part of parts) {
+          if (part.type === 'file') {
+            // Store file with metadata
+            files[part.fieldname] = {
+              filename: part.filename,
+              mimetype: part.mimetype,
+              encoding: part.encoding,
+              data: await part.toBuffer(),
+            };
+          } else {
+            // Store field value
+            fields[part.fieldname] = part.value;
+          }
+        }
+
+        console.log('=== Multipart GraphQL Request ===');
+        console.log('Fields:', Object.keys(fields));
+        console.log('Files:', Object.keys(files));
+
+        // Parse operations
+        const operations =
+          typeof fields.operations === 'string'
+            ? JSON.parse(fields.operations)
+            : fields.operations;
+
+        // Parse map
+        const map = fields.map
+          ? typeof fields.map === 'string'
+            ? JSON.parse(fields.map)
+            : fields.map
+          : {};
+
+        console.log('Parsed operations:', operations);
+        console.log('Parsed map:', map);
+
+        // Map files to operations
+        if (Object.keys(map).length > 0) {
+          const { Readable } = await import('stream');
+
+          for (const [fileKey, paths] of Object.entries(map)) {
+            const file = files[fileKey];
+
+            if (!file) {
+              console.error(`File not found for key: ${fileKey}`);
+              continue;
+            }
+
+            console.log(`Processing file ${fileKey}:`, {
+              filename: file.filename,
+              mimetype: file.mimetype,
+              size: file.data.length,
+            });
+
+            // Create Upload-compatible Promise (graphql-upload-ts expects a Promise)
+            const uploadFile = Promise.resolve({
+              filename: file.filename,
+              mimetype: file.mimetype,
+              encoding: file.encoding,
+              createReadStream: () => {
+                const readable = new Readable();
+                readable.push(file.data);
+                readable.push(null);
+                return readable;
+              },
+            });
+
+            // Map to variable paths
+            const pathArray = Array.isArray(paths) ? paths : [paths];
+            for (const path of pathArray) {
+              const parts = (path as string).split('.');
+              let current = operations;
+
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (!current[parts[i]]) current[parts[i]] = {};
+                current = current[parts[i]];
+              }
+
+              current[parts[parts.length - 1]] = uploadFile;
+              console.log(`Mapped file to: ${path}`);
+            }
+          }
+        }
+
+        // Set parsed body for Apollo
+        (request as any).body = operations;
+
+        console.log('Successfully processed multipart GraphQL request');
+      } catch (error) {
+        console.error('Error processing multipart:', error);
+      }
+    }
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,7 +140,6 @@ async function bootstrap() {
       },
     }),
   );
-  const fastify = app.getHttpAdapter().getInstance();
   // await fastify.register(fastifyCors, {
   //   origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
   //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

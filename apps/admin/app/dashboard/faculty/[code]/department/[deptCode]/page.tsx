@@ -5,49 +5,104 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { graphqlClient } from "@/lib/graphql-client";
 import {
   GET_DEPARTMENT_BY_CODE,
-  REMOVE_DEPARTMENT,
+  UPDATE_DEPARTMENT,
 } from "@/lib/graphql/department";
 import { Button } from "@workspace/ui/components/button";
 import {
-  Users,
+  ArrowLeft,
+  Settings,
   GraduationCap,
+  Users,
   BookOpen,
-  Trash2,
-  Plus,
-  LayoutGrid,
-  List,
   ChevronRight,
+  School,
+  FileText,
   UserCheck,
-  FileSpreadsheet,
 } from "lucide-react";
 import Link from "next/link";
 import { StatCard } from "@/components/stat-card";
+import { CurriculumManagement } from "./curriculum-management";
 import { cn } from "@workspace/ui/lib/utils";
+import { AssignRoleDialog } from "@/components/assign-role-dialog";
+import { toast } from "sonner";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+
+interface Stats {
+  studentCount: number;
+  staffCount: number;
+  courseCount: number;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  facultyId: string;
+  numberOfYears: number;
+  hodId?: string;
+  hod?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  stats?: Stats;
+  faculty: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
 
 export default function DepartmentDetailPage() {
-  const { code, deptCode } = useParams();
+  const { code: facultyCode, deptCode } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"courses" | "students">("courses");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [activeTab, setActiveTab] = useState<"overview" | "curriculum">(
+    "overview",
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["department", deptCode],
     queryFn: () =>
-      graphqlClient.request<any>(GET_DEPARTMENT_BY_CODE, { code: deptCode }),
+      graphqlClient.request<{ departmentByCode: Department }>(
+        GET_DEPARTMENT_BY_CODE,
+        {
+          code: deptCode,
+        },
+      ),
     enabled: !!deptCode,
   });
 
   const department = data?.departmentByCode;
 
-  const removeDeptMutation = useMutation({
-    mutationFn: (id: string) =>
-      graphqlClient.request(REMOVE_DEPARTMENT, { id }),
+  const updateDepartmentMutation = useMutation({
+    mutationFn: (input: { id: string; hodId: string }) =>
+      graphqlClient.request(UPDATE_DEPARTMENT, {
+        id: input.id,
+        input: { hodId: input.hodId },
+      }),
     onSuccess: () => {
-      router.push(`/dashboard/faculty/${code}`);
-      queryClient.invalidateQueries({ queryKey: ["faculty", code] });
+      toast.success("HOD assigned successfully");
+      queryClient.invalidateQueries({ queryKey: ["department", deptCode] });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to assign HOD: " + error.message);
     },
   });
+
+  const handleAssignHod = async (userId: string) => {
+    if (!department) return;
+    await updateDepartmentMutation.mutateAsync({
+      id: department.id,
+      hodId: userId,
+    });
+  };
 
   if (isLoading)
     return <div className="p-8">Loading department details...</div>;
@@ -56,145 +111,190 @@ export default function DepartmentDetailPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/dashboard/faculty/${code}`}
-            className="text-muted-foreground hover:text-primary transition-colors"
-          >
-            {department.faculty?.name}
-          </Link>
-          <ChevronRight size={16} className="text-muted-foreground" />
-          <h1 className="text-3xl font-bold tracking-tight">
-            {department.name}
-          </h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <UserCheck size={16} />
-            Assign HOD
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Plus size={16} />
-            Add Course
-          </Button>
+        <div className="flex items-center gap-4">
           <Button
-            variant="destructive"
-            size="sm"
-            className="gap-2"
-            onClick={() => {
-              if (confirm("Are you sure?")) {
-                removeDeptMutation.mutate(department.id);
-              }
-            }}
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="rounded-full"
           >
-            <Trash2 size={16} />
-            Delete Dept
+            <ArrowLeft size={20} />
           </Button>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-bold font-mono">
+                {department.code}
+              </span>
+              <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                {department.faculty.name}
+              </span>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {department.name}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <AssignRoleDialog
+            title="Assign Head of Department"
+            description="Select a staff member to assign as the HOD of this department."
+            roleName="HOD"
+            currentAssignee={department.hod}
+            onAssign={handleAssignHod}
+            trigger={
+              <Button variant="outline" size="sm" className="gap-2">
+                <UserCheck size={16} />
+                {department.hod ? "Change HOD" : "Assign HOD"}
+              </Button>
+            }
+          />
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - Always Visible */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
-          title="Total Students"
+          title="Students"
           value={department.stats?.studentCount || 0}
           icon={GraduationCap}
-          badgeText="Students"
+          badgeText="Active"
+          badgeVariant="success"
+        />
+        <StatCard
+          title="Staff"
+          value={department.stats?.staffCount || 0}
+          icon={Users}
+          badgeText="Academic"
           badgeVariant="default"
         />
         <StatCard
-          title="Total Courses"
+          title="Courses"
           value={department.stats?.courseCount || 0}
           icon={BookOpen}
-          badgeText="Courses"
+          badgeText="Offered"
           badgeVariant="secondary"
         />
-        <StatCard
-          title="Total Staffs"
-          value={department.stats?.staffCount || 0}
-          icon={Users}
-          badgeText="Staffs"
-          badgeVariant="outline"
-        />
-        <StatCard
-          title="Years of Study"
-          value={department.numberOfYears}
-          icon={FileSpreadsheet}
-          badgeText="Academic"
-          badgeVariant="success"
-        />
       </div>
 
-      {/* Course/Students Section */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-1 border rounded-lg p-1 bg-white dark:bg-neutral-900 shadow-sm w-fit">
-            <button
-              onClick={() => setActiveTab("courses")}
-              className={cn(
-                "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                activeTab === "courses"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800",
-              )}
-            >
-              Courses
-            </button>
-            <button
-              onClick={() => setActiveTab("students")}
-              className={cn(
-                "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-                activeTab === "students"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800",
-              )}
-            >
-              Students
-            </button>
-          </div>
-
-          <div className="flex items-center border rounded-lg p-1 bg-white dark:bg-neutral-900 shadow-sm w-fit">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "grid"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800",
-              )}
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "list"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800",
-              )}
-            >
-              <List size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="min-h-[300px] flex items-center justify-center border-2 border-dashed rounded-2xl text-muted-foreground">
-          {activeTab === "courses" ? (
-            <div className="text-center space-y-2">
-              <BookOpen size={48} className="mx-auto opacity-20" />
-              <p>Course list for {department.name} will appear here.</p>
-            </div>
-          ) : (
-            <div className="text-center space-y-2">
-              <Users size={48} className="mx-auto opacity-20" />
-              <p>Student enrollment for {department.name} will appear here.</p>
-            </div>
-          )}
+      {/* Tabs */}
+      <div className="border-b">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={cn(
+              "px-4 py-2 border-b-2 text-sm font-medium transition-colors flex items-center gap-2",
+              activeTab === "overview"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <School size={16} />
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab("curriculum")}
+            className={cn(
+              "px-4 py-2 border-b-2 text-sm font-medium transition-colors flex items-center gap-2",
+              activeTab === "curriculum"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <FileText size={16} />
+            Curriculum
+          </button>
         </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-left-4 duration-300">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="text-xl font-bold mb-4">About Department</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              {department.description ||
+                "The academic hub for " + department.name + "."}
+            </p>
+            <div className="mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Years of Study</span>
+                <span className="font-bold">
+                  {department.numberOfYears} Years
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">
+                  Head of Department
+                </span>
+                <span className="font-bold">
+                  {department.hod ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={department.hod.image} />
+                        <AvatarFallback>
+                          {department.hod.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {department.hod.name}
+                    </div>
+                  ) : (
+                    "Not Assigned"
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold px-2">Administrative Actions</h2>
+            <div className="grid grid-cols-1 gap-3">
+              <Link
+                href={`/dashboard/faculty/${facultyCode}/department/${deptCode}/grades`}
+              >
+                <div className="flex items-center justify-between p-4 rounded-xl border border-neutral-200 bg-white hover:border-primary/50 hover:shadow-sm transition-all dark:border-neutral-800 dark:bg-neutral-900 group">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Settings size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Grading System</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Configure GPA scales and grade letters
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight
+                    size={18}
+                    className="text-neutral-300 group-hover:text-primary transition-colors"
+                  />
+                </div>
+              </Link>
+
+              <div className="flex items-center justify-between p-4 rounded-xl border border-neutral-200 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-900/50 opacity-60 cursor-not-allowed">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-neutral-200 text-neutral-500 flex items-center justify-center">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">Staff Management</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Assign and manage department lecturers
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "curriculum" && (
+        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+          <CurriculumManagement departmentId={department.id} />
+        </div>
+      )}
     </div>
   );
 }

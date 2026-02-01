@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, InputType, Int } from '@nestjs/graphql';
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { Faculty } from '../../faculty/entities/faculty.entity';
+import { User } from '../../../common/entities/user.entity';
 
 @ObjectType()
 export class DepartmentStats {
@@ -48,6 +49,9 @@ export class Department {
 
   @Field(() => Faculty, { nullable: true })
   faculty?: Faculty;
+
+  @Field(() => User, { nullable: true })
+  hod?: User;
 }
 
 @InputType()

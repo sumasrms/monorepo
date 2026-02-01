@@ -195,7 +195,19 @@ model GradeScale {
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@unique([departmentId, grade])
-  @@map("grade_scale")
+  @@map("grade_config")
+}
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  category  String   // general, session, appearance, notification, security
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
 }
 
 model Course {
@@ -365,7 +377,9 @@ model Staff {
   id              String             @id @default(cuid())
   userId          String             @unique
   staffNumber     String             @unique
+  institutionalRank String
   designation     String?
+  dateOfBirth     DateTime
   employmentDate  DateTime           @default(now())
   employmentType  EmploymentType     @default(FULL_TIME)
   departmentId    String?

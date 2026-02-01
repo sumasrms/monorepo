@@ -28,6 +28,12 @@ export const GET_FACULTY_BY_CODE = gql`
       code
       description
       deanId
+      dean {
+        id
+        name
+        email
+        image
+      }
       createdAt
       updatedAt
       stats {
@@ -61,6 +67,19 @@ export const CREATE_FACULTY = gql`
       deanId
       createdAt
       updatedAt
+    }
+  }
+`;
+
+export const UPDATE_FACULTY = gql`
+  mutation UpdateFaculty($id: ID!, $input: UpdateFacultyInput!) {
+    updateFaculty(id: $id, input: $input) {
+      id
+      deanId
+      dean {
+        id
+        name
+      }
     }
   }
 `;

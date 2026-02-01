@@ -34,6 +34,13 @@ export const GET_DEPARTMENT_BY_CODE = gql`
       code
       description
       facultyId
+      hodId
+      hod {
+        id
+        name
+        email
+        image
+      }
       numberOfYears
       stats {
         studentCount
@@ -44,6 +51,19 @@ export const GET_DEPARTMENT_BY_CODE = gql`
         id
         name
         code
+      }
+    }
+  }
+`;
+
+export const UPDATE_DEPARTMENT = gql`
+  mutation UpdateDepartment($id: ID!, $input: UpdateDepartmentInput!) {
+    updateDepartment(id: $id, input: $input) {
+      id
+      hodId
+      hod {
+        id
+        name
       }
     }
   }

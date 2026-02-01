@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,10 +31,12 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { ModeToggle } from "@workspace/ui/components/mode-toggle";
 import Image from "next/image";
+import { authClient } from "@/lib/auth-client";
 
 export function DashboardHeader() {
   const pathname = usePathname();
   const pathSegments = pathname.split("/").filter((segment) => segment !== "");
+  const [user, setUser] = useState<any>(null);
 
   const [session, setSession] = useState("2024/2025");
   const [semester, setSemester] = useState("First Semester");
@@ -42,6 +44,14 @@ export function DashboardHeader() {
 
   const sessions = ["2023/2024", "2024/2025", "2025/2026"];
   const semesters = ["First Semester", "Second Semester"];
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data } = await authClient.getSession();
+      setUser(data?.user);
+    };
+    fetchSession();
+  }, []);
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-background px-6 dark:border-neutral-700 rounded-2xl my-3 ">
@@ -177,9 +187,9 @@ export function DashboardHeader() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Admin User</p>
+                <p className="text-sm font-medium leading-none">{user?.name}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@sumas.edu.ng
+                  {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -197,7 +207,18 @@ export function DashboardHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive cursor-pointer"
+              onClick={async () => {
+                await authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = "/login";
+                    },
+                  },
+                });
+              }}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
