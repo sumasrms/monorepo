@@ -18,6 +18,7 @@ import {
 import { Semester, CourseType } from '@prisma/client';
 import { Department } from '../../department/entities/department.entity';
 import { Staff } from '../../staff/entities/staff.entity';
+import { Enrollment } from '../../student/entities/enrollment.entity';
 
 registerEnumType(Semester, { name: 'Semester' });
 registerEnumType(CourseType, { name: 'CourseType' });
@@ -68,6 +69,9 @@ export class Course {
 
   @Field(() => [DepartmentCourse], { nullable: true })
   departmentOfferings?: DepartmentCourse[];
+
+  @Field(() => [Enrollment], { nullable: true })
+  enrollments?: Enrollment[];
 }
 
 @ObjectType()
@@ -246,4 +250,60 @@ export class BorrowCourseInput {
   @IsInt()
   @IsOptional()
   level?: number;
+}
+@InputType()
+export class EnrollStudentsInput {
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  departmentId: string;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(100)
+  @IsNotEmpty()
+  level: number;
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  semester: string;
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  session: string;
+}
+
+@ObjectType()
+export class EnrollmentResult {
+  @Field(() => Int)
+  enrolledCount: number;
+
+  @Field(() => Int, { nullable: true })
+  totalStudents?: number;
+
+  @Field(() => Int, { nullable: true })
+  totalCourses?: number;
+
+  @Field()
+  message: string;
+}
+
+@ObjectType()
+export class ValidationResult {
+  @Field()
+  isValid: boolean;
+
+  @Field({ nullable: true })
+  reason?: string;
+}
+
+@ObjectType()
+export class AssignInstructorResult {
+  @Field(() => CourseInstructor)
+  assignment: CourseInstructor;
+
+  @Field({ nullable: true })
+  warning?: string;
 }

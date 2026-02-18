@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -16,10 +17,23 @@ import { UserModule } from './modules/user/user.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { StudentModule } from './modules/student/student.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ResultModule } from './modules/result/result.module';
+import { SessionModule } from './modules/session/session.module';
+import { SessionInterceptor } from './common/interceptors/session.interceptor';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { join } from 'path';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { QueueModule } from './queues/queue.module';
+import { EmailModule } from './email/email.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -40,9 +54,29 @@ import { join } from 'path';
     StaffModule,
     StudentModule,
     DashboardModule,
+    ResultModule,
+    SessionModule,
+    NotificationsModule,
+    QueueModule,
+    EmailModule,
+    AuditModule,
+    PaymentModule,
   ],
+
   controllers: [AppController],
-  providers: [AppService, AppResolver],
+  providers: [
+    AppService,
+    AppResolver,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SessionInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+  ],
 })
 export class AppModule {}
+
 // Force restart

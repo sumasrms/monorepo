@@ -49,6 +49,7 @@ function LoginFormContent({
   );
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+    const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +72,7 @@ function LoginFormContent({
           setModalMessage("You have successfully logged in. Redirecting...");
           setOpen(true);
           setTimeout(() => {
-            window.location.href = "/";
+              router.replace("/");
           }, 1500);
         },
         onError: (err) => {

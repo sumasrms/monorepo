@@ -92,7 +92,9 @@ export const REMOVE_COURSE = gql`
 
 export const ASSIGN_INSTRUCTOR = gql`
   mutation AssignInstructor($input: AssignInstructorInput!) {
-    assignInstructor(input: $input)
+    assignInstructor(input: $input) {
+      warning
+    }
   }
 `;
 

@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 
 @ObjectType()
 export class DashboardStats {
@@ -23,8 +23,8 @@ export class ChartDataPoint {
   @Field()
   name: string; // e.g., Faculty Name
 
-  @Field(() => Int)
-  value: number; // e.g., Student Count
+  @Field(() => Float)
+  value: number; // Counts or averages
 }
 
 @ObjectType()
@@ -46,4 +46,15 @@ export class RecentActivity {
 
   @Field()
   timestamp: Date;
+}
+@ObjectType()
+export class DepartmentAnalytics {
+  @Field(() => [ChartDataPoint])
+  gradeDistribution: ChartDataPoint[];
+
+  @Field(() => Float)
+  passRate: number;
+
+  @Field(() => [ChartDataPoint])
+  avgGPByLevel: ChartDataPoint[];
 }

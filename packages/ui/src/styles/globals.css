@@ -128,3 +128,17 @@
 button {
   cursor: pointer;
 }
+
+.result-grid {
+  --dsg-selection-border-color: orange;
+  --dsg-selection-background-color: rgba(59, 130, 246, 0.1);
+  --dsg-header-background-color: #f9fafb;
+  --dsg-header-text-color: #6b7280;
+  --dsg-cell-border-color: #e5e7eb;
+    --dsg-selection-border-radius: 10px;
+  --dsg-selection-border-width: 1px;
+
+}
+.dsg-container {
+  border: none !important;
+}

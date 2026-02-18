@@ -6,6 +6,7 @@ import {
   ID,
   ResolveField,
   Parent,
+  Context,
 } from '@nestjs/graphql';
 import { StaffService } from './staff.service';
 import {
@@ -15,6 +16,7 @@ import {
   BulkUploadResponse,
 } from './entities/staff.entity';
 import { User } from 'src/common/entities/user.entity';
+import { CourseInstructor } from '../course/entities/course.entity';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -40,6 +42,20 @@ export class StaffResolver {
   @Query(() => Staff, { name: 'staff' })
   findOne(@Args('id', { type: () => ID }) id: string) {
     return this.staffService.findOne(id);
+  }
+
+  @Query(() => [Staff], { name: 'staffByDepartment' })
+  @Roles(roles.DEAN)
+  async staffByDepartment(
+    @Args('departmentId') departmentId: string,
+    @Context() context: any,
+  ) {
+    const facultyId =
+      context.req.user.staffProfile?.facultyId || context.req.user.facultyId;
+    if (!facultyId) {
+      throw new Error('Faculty not found for this user');
+    }
+    return this.staffService.getByDepartmentForFaculty(departmentId, facultyId);
   }
 
   @Mutation(() => Staff)
@@ -71,5 +87,10 @@ export class StaffResolver {
     if (staff.user) return staff.user;
     const fullStaff = await this.staffService.findOne(staff.id);
     return fullStaff.user;
+  }
+
+  @ResolveField(() => [CourseInstructor], { nullable: true })
+  async assignedCourses(@Parent() staff: Staff) {
+    return this.staffService.getAssignedCourses(staff.id);
   }
 }

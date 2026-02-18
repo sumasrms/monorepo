@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { authClient } from "./auth-client";
 
 type AuthContextType = {
@@ -31,17 +32,18 @@ export function useAuth() {
 
 export function useRequireAuth() {
   const { session, isPending } = useAuth();
+  const router = useRouter();
 
   React.useEffect(() => {
     if (!isPending) {
       if (!session) {
-        window.location.href = "/login";
+        router.replace("/login");
       } else if (session.user.role === "student") {
         // Students cannot access staff portal
-        window.location.href = "/login?error=unauthorized_role";
+        router.replace("/unauthorized");
       }
     }
-  }, [session, isPending]);
+  }, [session, isPending, router]);
 
   return { session, isPending };
 }

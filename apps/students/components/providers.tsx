@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { AuthProvider } from "@/lib/auth";
+import { RoleGuard } from "@/components/role-guard";
 
 import { QueryProvider } from "./query-provider";
 
@@ -16,7 +17,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableColorScheme
     >
       <AuthProvider>
-        <QueryProvider>{children}</QueryProvider>
+        <RoleGuard>
+          <QueryProvider>{children}</QueryProvider>
+        </RoleGuard>
       </AuthProvider>
     </NextThemesProvider>
   );

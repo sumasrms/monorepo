@@ -1,8 +1,17 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata } from "next";
 
 import "@workspace/ui/globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@workspace/ui/components/theme-provider";
+
+export const metadata: Metadata = {
+  title: {
+    default: "SUMAS Staff Portal",
+    template: "%s | SUMAS Staff",
+  },
+};
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -24,11 +33,10 @@ export default function RootLayout({
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
-        <Providers>
-          {children}
-
+        <ThemeProvider>
+          <Providers>{children}</Providers>
           <Toaster position="top-center" />
-        </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

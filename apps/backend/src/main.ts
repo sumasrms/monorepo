@@ -161,10 +161,24 @@ async function bootstrap() {
         if (value) headers.append(key, value.toString());
       });
 
+      let body: BodyInit | undefined;
+
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        const incomingBody = request.body as unknown;
+
+        if (typeof incomingBody === 'string') {
+          body = incomingBody;
+        } else if (incomingBody instanceof Uint8Array) {
+          body = incomingBody;
+        } else if (incomingBody !== undefined && incomingBody !== null) {
+          body = JSON.stringify(incomingBody);
+        }
+      }
+
       const req = new Request(url.toString(), {
         method: request.method,
         headers,
-        body: request.body ? JSON.stringify(request.body) : undefined,
+        body,
       });
 
       const response = await auth.handler(req);

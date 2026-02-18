@@ -1,7 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ThemeProvider as NextThemesProvider } from "next-themes"
+import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { AuthProvider } from "@/lib/auth";
+import { QueryProvider } from "@/components/query-provider";
+import { RoleGuard } from "@/components/role-guard";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +15,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       enableColorScheme
     >
-      {children}
+      <AuthProvider>
+        <RoleGuard>
+          <QueryProvider>{children}</QueryProvider>
+        </RoleGuard>
+      </AuthProvider>
     </NextThemesProvider>
-  )
+  );
 }

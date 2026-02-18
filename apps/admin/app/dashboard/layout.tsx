@@ -7,7 +7,6 @@ import {
   Building2,
   GraduationCap,
   Users,
-  UserCog,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import {
 import { LucideIcon } from "lucide-react";
 import { DashboardHeader } from "@/components/header";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { SessionSwitcher } from "@/components/session-switcher";
 import Image from "next/image";
 
 // Type definitions for menu items
@@ -64,12 +64,12 @@ export default function DashboardLayout({
           icon: ShieldCheck,
           children: [
             {
-              title: "Faculties",
-              url: "/dashboard/faculty",
+              title: "Academic Sessions",
+              url: "/dashboard/sessions",
             },
             {
-              title: "Departments",
-              url: "/dashboard/governance/departments",
+              title: "Faculties",
+              url: "/dashboard/faculty",
             },
           ],
         },
@@ -97,11 +97,6 @@ export default function DashboardLayout({
           title: "Staffs",
           url: "/dashboard/staff",
           icon: Users,
-        },
-        {
-          title: "User Management",
-          url: "/dashboard/users",
-          icon: UserCog,
         },
       ],
     },
@@ -141,6 +136,14 @@ export default function DashboardLayout({
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
             {open ? <Logo /> : <LogoIcon />}
+            <div className="mt-4 px-1 flex flex-col gap-2">
+              {open && (
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1 px-1">
+                  Academic Context
+                </p>
+              )}
+              <SessionSwitcher />
+            </div>
             <div className="mt-8 flex flex-col">
               {menuConfig.map((section, idx) => (
                 <SidebarSection key={idx} label={section.label}>
@@ -190,7 +193,6 @@ const LogoIcon = () => {
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <Image src="/logo.png" alt="Logo" width={24} height={24} />
-      {/* <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" /> */}
     </a>
   );
 };

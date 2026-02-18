@@ -3,9 +3,10 @@ import { twoFactorClient } from "better-auth/client/plugins";
 import { adminClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { ac } from "../../backend/lib/permissions";
+import { getApiBaseUrl } from "./api";
 
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:4000",
+  baseURL: getApiBaseUrl(),
   fetchOptions: {
     headers: {
       "x-portal-type": "admin",

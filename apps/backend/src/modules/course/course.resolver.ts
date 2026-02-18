@@ -6,6 +6,7 @@ import {
   ID,
   Parent,
   ResolveField,
+  Context,
 } from '@nestjs/graphql';
 import { CourseService } from './course.service';
 import {
@@ -16,6 +17,10 @@ import {
   BorrowCourseInput,
   CourseInstructor,
   DepartmentCourse,
+  EnrollStudentsInput,
+  EnrollmentResult,
+  ValidationResult,
+  AssignInstructorResult,
 } from './entities/course.entity';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/auth.guard';
@@ -23,6 +28,7 @@ import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { roles } from 'lib/permissions';
 import { Department } from '../department/entities/department.entity';
+import { Enrollment } from '../student/entities/enrollment.entity';
 // import { Department } from '../../department/entities/department.entity';
 
 @Resolver(() => Course)
@@ -66,11 +72,14 @@ export class CourseResolver {
     return this.courseService.remove(id);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => AssignInstructorResult)
   @Roles(roles.ADMIN)
   async assignInstructor(@Args('input') input: AssignInstructorInput) {
-    await this.courseService.assignInstructor(input);
-    return true;
+    return this.courseService.assignInstructorWithCurriculumCheck(
+      input.courseId,
+      input.instructorId,
+      input.isPrimary,
+    );
   }
 
   @Mutation(() => Boolean)
@@ -90,8 +99,45 @@ export class CourseResolver {
     return true;
   }
 
+  @Mutation(() => EnrollmentResult)
+  @Roles(roles.ADMIN)
+  async enrollStudentsInCurriculumBatch(
+    @Args('input') input: EnrollStudentsInput,
+  ) {
+    return this.courseService.enrollStudentsInCurriculumBatch(
+      input.departmentId,
+      input.level,
+      input.semester,
+      input.session,
+    );
+  }
+
+  @Query(() => ValidationResult)
+  @Roles(roles.STUDENT)
+  async validateStudentCourseRegistration(
+    @Args('studentId') studentId: string,
+    @Args('courseId') courseId: string,
+    @Args('semester') semester: string,
+  ) {
+    return this.courseService.validateStudentCourseRegistration(
+      studentId,
+      courseId,
+      semester,
+    );
+  }
+
   @Query(() => [DepartmentCourse], { name: 'departmentOfferings' })
   async getOfferings(@Args('departmentId') departmentId: string) {
+    return this.courseService.getOfferings(departmentId);
+  }
+
+  @Query(() => [DepartmentCourse], { name: 'myDepartmentOfferings' })
+  @Roles(roles.HOD)
+  async getMyOfferings(@Context() context: any) {
+    const departmentId = context.req.user.staffProfile?.departmentId;
+    if (!departmentId) {
+      throw new Error('Department not found for this user');
+    }
     return this.courseService.getOfferings(departmentId);
   }
 
@@ -111,5 +157,11 @@ export class CourseResolver {
   async departmentOfferings(@Parent() course: Course) {
     if (course.departmentOfferings) return course.departmentOfferings;
     return this.courseService.getCourseOfferings(course.id);
+  }
+
+  @ResolveField(() => [Enrollment], { nullable: true })
+  async enrollments(@Parent() course: Course) {
+    if (course.enrollments) return course.enrollments;
+    return this.courseService.getEnrollments(course.id);
   }
 }

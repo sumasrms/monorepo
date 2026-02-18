@@ -247,4 +247,221 @@ export class CourseService {
       },
     });
   }
+
+  async getEnrollments(courseId: string) {
+    return this.prisma.enrollment.findMany({
+      where: { courseId },
+      include: {
+        student: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Auto-enroll students in curriculum courses
+   * Gets all students in a department at a specific level and enrolls them
+   * in courses defined for that department, level, and semester
+   */
+  async enrollStudentsInCurriculumBatch(
+    departmentId: string,
+    level: number,
+    semester: string,
+    session: string,
+  ) {
+    // Check department exists
+    const department = await this.prisma.department.findUnique({
+      where: { id: departmentId },
+    });
+    if (!department) throw new NotFoundException('Department not found');
+
+    // Get all students in this department at this level
+    const students = await this.prisma.student.findMany({
+      where: {
+        departmentId,
+        level,
+        status: 'ACTIVE',
+      },
+    });
+
+    if (students.length === 0) {
+      return {
+        enrolledCount: 0,
+        message: `No active students found at level ${level} in ${department.name}`,
+      };
+    }
+
+    // Get curriculum courses for this department, level, and semester
+    const curriculumCourses = await this.prisma.departmentCourse.findMany({
+      where: {
+        departmentId,
+        level,
+        semester: semester as any,
+      },
+      include: {
+        course: true,
+      },
+    });
+
+    if (curriculumCourses.length === 0) {
+      return {
+        enrolledCount: 0,
+        message: `No curriculum courses found for level ${level} in ${semester} semester`,
+      };
+    }
+
+    // Create enrollments for each student in each curriculum course
+    let enrolledCount = 0;
+    for (const student of students) {
+      for (const { course } of curriculumCourses) {
+        try {
+          await this.prisma.enrollment.upsert({
+            where: {
+              studentId_courseId: {
+                studentId: student.id,
+                courseId: course.id,
+              },
+            },
+            update: { status: 'ACTIVE' }, // Reactivate if previously inactive
+            create: {
+              studentId: student.id,
+              courseId: course.id,
+              status: 'ACTIVE',
+            },
+          });
+          enrolledCount++;
+        } catch (error) {
+          // Skip if enrollment creation fails (e.g., already exists)
+          continue;
+        }
+      }
+    }
+
+    return {
+      enrolledCount,
+      totalStudents: students.length,
+      totalCourses: curriculumCourses.length,
+      message: `Successfully enrolled ${enrolledCount} students in curriculum courses`,
+    };
+  }
+
+  /**
+   * Validate if a student can register for a course
+   * Checks if the course is part of student's curriculum or an offering in their department
+   */
+  async validateStudentCourseRegistration(
+    studentId: string,
+    courseId: string,
+    semester: string,
+  ): Promise<{ isValid: boolean; reason?: string }> {
+    // Check student exists
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: { department: true },
+    });
+    if (!student) return { isValid: false, reason: 'Student not found' };
+    if (!student.departmentId) {
+      return { isValid: false, reason: 'Student has no department assigned' };
+    }
+
+    // Check course exists
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    if (!course) return { isValid: false, reason: 'Course not found' };
+
+    // Check if course is in student's curriculum (department + level + semester)
+    const curriculumCourse = await this.prisma.departmentCourse.findFirst({
+      where: {
+        courseId,
+        departmentId: student.departmentId,
+        level: student.level,
+        semester: semester as any,
+      },
+    });
+
+    if (curriculumCourse) {
+      return { isValid: true };
+    }
+
+    // As a fallback, allow if course is offered by the student's department
+    // even if not in exact curriculum (supports cross-level electives)
+    const departmentOffering = await this.prisma.departmentCourse.findFirst({
+      where: {
+        courseId,
+        departmentId: student.departmentId,
+      },
+    });
+
+    if (departmentOffering) {
+      return {
+        isValid: true,
+        reason: 'Course is offered by department (not in curriculum)',
+      };
+    }
+
+    return {
+      isValid: false,
+      reason: 'Course is not in your curriculum or offered by your department',
+    };
+  }
+
+  /**
+   * Check if assigning an instructor to a course matches curriculum
+   * Returns warning if course is not in the instructor's department curriculum
+   */
+  async assignInstructorWithCurriculumCheck(
+    courseId: string,
+    instructorId: string,
+    isPrimary: boolean,
+  ) {
+    // Get instructor's department
+    const instructor = await this.prisma.staff.findUnique({
+      where: { id: instructorId },
+    });
+    if (!instructor) throw new NotFoundException('Instructor not found');
+    if (!instructor.departmentId) {
+      throw new NotFoundException(
+        'Instructor has no department assigned',
+      );
+    }
+
+    // Get course details
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+
+    // Check if course is in instructor's department curriculum
+    const curriculumMatch = await this.prisma.departmentCourse.findFirst({
+      where: {
+        courseId,
+        departmentId: instructor.departmentId,
+      },
+    });
+
+    let warning: string | null = null;
+    if (!curriculumMatch) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: instructor.departmentId },
+        select: { name: true },
+      });
+      warning = `Course "${course.code}" is not in ${department?.name}'s curriculum. Assigning ${instructor.id} as instructor anyway.`;
+    }
+
+    // Perform the assignment
+    const assignment = await this.assignInstructor({
+      courseId,
+      instructorId,
+      isPrimary,
+    });
+
+    return {
+      assignment,
+      warning,
+    };
+  }
 }

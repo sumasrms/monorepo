@@ -5,6 +5,7 @@ import {
   InputType,
   PartialType,
   Int,
+  Float,
 } from '@nestjs/graphql';
 import {
   IsDate,
@@ -46,6 +47,9 @@ export class Student {
 
   @Field(() => Department, { nullable: true })
   department?: Department;
+
+  @Field(() => Float, { nullable: true })
+  cgpa?: number;
 }
 
 @InputType()

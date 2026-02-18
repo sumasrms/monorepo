@@ -29,15 +29,26 @@ export class RolesGuard implements CanActivate {
     const req = gqlCtx.req || gqlCtx.request;
     const user = req.user;
 
+    console.log('[RolesGuard] Checking permissions:', {
+      requiredRoles,
+      userId: user || 'NO_USER',
+      userRole: user?.role || 'NO_ROLE',
+      hasUser: !!user,
+      hasRole: user?.role ? true : false,
+    });
+
     if (!user || !user.role) {
+      console.log('[RolesGuard] DENIED - User or role missing');
       throw new ForbiddenException('User has no role assigned');
     }
 
     const hasRole = requiredRoles.includes(user.role);
     if (!hasRole) {
+      console.log('[RolesGuard] DENIED - Role not in required list');
       throw new ForbiddenException('Insufficient permissions');
     }
 
+    console.log('[RolesGuard] ALLOWED - Role check passed');
     return true;
   }
 }

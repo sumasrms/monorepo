@@ -23,8 +23,8 @@ export function ModeToggle() {
       aria-pressed={isDark}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        <span className="sr-only">Toggle dark mode</span>
+      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      <span className="sr-only">Toggle dark mode</span>
     </Toggle>
   );
 }

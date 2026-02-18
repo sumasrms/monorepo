@@ -6,11 +6,13 @@ import {
   ID,
   ResolveField,
   Parent,
+  Context,
 } from '@nestjs/graphql';
 import { FacultyService } from './faculty.service';
 import {
   Faculty,
   FacultyStats,
+  FacultyAnalytics,
   CreateFacultyInput,
   UpdateFacultyInput,
 } from './entities/faculty.entity';
@@ -60,6 +62,39 @@ export class FacultyResolver {
   @Query(() => Faculty, { name: 'facultyByCode' })
   findByCode(@Args('code') code: string) {
     return this.facultyService.findByCode(code);
+  }
+
+  @Query(() => FacultyStats, { name: 'myFacultyStats' })
+  @Roles(roles.DEAN)
+  async getMyFacultyStats(@Context() context: any) {
+    const facultyId =
+      context.req.user.staffProfile?.facultyId || context.req.user.facultyId;
+    if (!facultyId) {
+      throw new Error('Faculty not found for this user');
+    }
+    return this.facultyService.getStats(facultyId);
+  }
+
+  @Query(() => [Department], { name: 'myFacultyDepartments' })
+  @Roles(roles.DEAN)
+  async getMyFacultyDepartments(@Context() context: any) {
+    const facultyId =
+      context.req.user.staffProfile?.facultyId || context.req.user.facultyId;
+    if (!facultyId) {
+      throw new Error('Faculty not found for this user');
+    }
+    return this.facultyService.getDepartments(facultyId);
+  }
+
+  @Query(() => FacultyAnalytics, { name: 'myFacultyAnalytics' })
+  @Roles(roles.DEAN)
+  async getMyFacultyAnalytics(@Context() context: any) {
+    const facultyId =
+      context.req.user.staffProfile?.facultyId || context.req.user.facultyId;
+    if (!facultyId) {
+      throw new Error('Faculty not found for this user');
+    }
+    return this.facultyService.getAnalytics(facultyId);
   }
 
   @ResolveField(() => FacultyStats)

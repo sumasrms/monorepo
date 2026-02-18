@@ -121,4 +121,143 @@ export class DashboardService {
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 5);
   }
+
+  async getDepartmentStats(departmentId: string): Promise<DashboardStats> {
+    const [studentCount, staffCount, courseCount] = await Promise.all([
+      this.prisma.student.count({
+        where: { departmentId },
+      }),
+      this.prisma.staff.count({
+        where: { departmentId },
+      }),
+      this.prisma.course.count({
+        where: { departmentId },
+      }),
+    ]);
+
+    return {
+      studentCount,
+      staffCount,
+      courseCount,
+      departmentCount: 1, // Only the HOD's department
+      facultyCount: 1, // Only the HOD's faculty
+    };
+  }
+
+  async getDepartmentAnalytics(departmentId: string) {
+    const results = await this.prisma.result.findMany({
+      where: {
+        course: {
+          departmentId,
+        },
+      },
+      include: {
+        student: true,
+      },
+    });
+
+    const gradeDistributionMap: Record<string, number> = {
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      E: 0,
+      F: 0,
+    };
+
+    let passCount = 0;
+    const levelGPAMap: Record<number, { totalGP: number; count: number }> = {};
+
+    results.forEach((r) => {
+      if (gradeDistributionMap[r.grade] !== undefined) {
+        gradeDistributionMap[r.grade]++;
+      }
+      if (r.grade !== 'F') {
+        passCount++;
+      }
+
+      const level = r.student?.level || 100;
+      if (!levelGPAMap[level]) {
+        levelGPAMap[level] = { totalGP: 0, count: 0 };
+      }
+      levelGPAMap[level].totalGP += r.gradePoint;
+      levelGPAMap[level].count++;
+    });
+
+    const gradeDistribution = Object.entries(gradeDistributionMap).map(
+      ([name, value]) => ({ name, value }),
+    );
+
+    const passRate =
+      results.length > 0 ? (passCount / results.length) * 100 : 0;
+
+    const avgGPByLevel = Object.entries(levelGPAMap)
+      .map(([level, data]) => ({
+        name: `Level ${level}`,
+        value: Number((data.totalGP / data.count).toFixed(2)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      gradeDistribution,
+      passRate,
+      avgGPByLevel,
+    };
+  }
+
+  async getUniversityAnalytics() {
+    const results = await this.prisma.result.findMany({
+      include: {
+        student: true,
+      },
+    });
+
+    const gradeDistributionMap: Record<string, number> = {
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      E: 0,
+      F: 0,
+    };
+
+    let passCount = 0;
+    const levelGPAMap: Record<number, { totalGP: number; count: number }> = {};
+
+    results.forEach((r) => {
+      if (gradeDistributionMap[r.grade] !== undefined) {
+        gradeDistributionMap[r.grade]++;
+      }
+      if (r.grade !== 'F') {
+        passCount++;
+      }
+
+      const level = r.student?.level || 100;
+      if (!levelGPAMap[level]) {
+        levelGPAMap[level] = { totalGP: 0, count: 0 };
+      }
+      levelGPAMap[level].totalGP += r.gradePoint;
+      levelGPAMap[level].count++;
+    });
+
+    const gradeDistribution = Object.entries(gradeDistributionMap).map(
+      ([name, value]) => ({ name, value }),
+    );
+
+    const passRate =
+      results.length > 0 ? (passCount / results.length) * 100 : 0;
+
+    const avgGPByLevel = Object.entries(levelGPAMap)
+      .map(([level, data]) => ({
+        name: `Level ${level}`,
+        value: Number((data.totalGP / data.count).toFixed(2)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      gradeDistribution,
+      passRate,
+      avgGPByLevel,
+    };
+  }
 }

@@ -72,7 +72,23 @@ export class DepartmentService {
   }
 
   async update(id: string, data: UpdateDepartmentInput) {
-    await this.findOne(id);
+    const department = await this.findOne(id);
+
+    if (data.hodId && data.hodId !== department.hodId) {
+      const existingHod = await this.prisma.department.findFirst({
+        where: {
+          hodId: data.hodId,
+          id: { not: id },
+        },
+        select: { id: true, name: true, code: true },
+      });
+
+      if (existingHod) {
+        throw new ConflictException(
+          `This staff member is already assigned as Head of Department for ${existingHod.name} (${existingHod.code}).`,
+        );
+      }
+    }
 
     try {
       return await this.prisma.department.update({

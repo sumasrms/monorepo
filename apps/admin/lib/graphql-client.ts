@@ -1,12 +1,24 @@
 import { GraphQLClient } from "graphql-request";
+import { getAuthHeaders, getGraphqlEndpoint } from "./api";
 
-const endpoint =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
-const token =
-  typeof window !== "undefined" ? localStorage.getItem("bearer_token") : null;
+const endpoint = getGraphqlEndpoint();
 
 export const graphqlClient = new GraphQLClient(endpoint, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
+  requestMiddleware: (request) => ({
+    ...request,
+    headers: {
+      ...request.headers,
+      ...getAuthHeaders(),
+      "x-portal-type": "admin",
+      "Content-Type": "application/json",
+    },
+  }),
 });
+
+export const getErrorMessage = (error: any): string => {
+  if (error.response?.errors?.[0]?.message) {
+    return error.response.errors[0].message;
+  }
+  return error.message || "An unexpected error occurred";
+};
+

@@ -38,8 +38,8 @@ export function useRequireAuth() {
       if (!session) {
         window.location.href = "/login";
       } else if (session.user.role !== "student") {
-        // Cross-portal session detected - redirect to login
-        window.location.href = "/login?error=unauthorized_role";
+        // Cross-portal session detected
+        window.location.href = "/unauthorized";
       }
     }
   }, [session, isPending]);

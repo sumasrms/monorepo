@@ -1,12 +1,19 @@
 import { createAuthClient } from "better-auth/react";
 import { adminClient } from "better-auth/client/plugins";
 import { ac } from "../../backend/lib/permissions";
+import { getApiBaseUrl } from "./api";
 
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:4000",
+  baseURL: getApiBaseUrl(),
   fetchOptions: {
     headers: {
       "x-portal-type": "student",
+    },
+    onSuccess: (ctx) => {
+      const authToken = ctx.response.headers.get("set-auth-token");
+      if (authToken) {
+        localStorage.setItem("bearer_token", authToken);
+      }
     },
   },
   plugins: [
@@ -17,3 +24,7 @@ export const authClient = createAuthClient({
 });
 
 export const { useSession, signIn, signOut } = authClient;
+
+// Export useAuth as an alias for useSession for convenience
+export const useAuth = useSession;
+  

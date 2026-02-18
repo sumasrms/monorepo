@@ -34,6 +34,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import { toast } from "sonner";
 
 interface AssignRoleDialogProps {
   title: string;
@@ -93,7 +94,11 @@ export function AssignRoleDialog({
       await onAssign(value);
       setDialogOpen(false);
     } catch (error) {
-      console.error("Failed to assign role", error);
+      const errorMessage =
+        (error as any)?.response?.errors?.[0]?.message ||
+        (error as any)?.message ||
+        "Failed to assign role.";
+      toast.error(errorMessage);
     } finally {
       setIsAssigning(false);
     }

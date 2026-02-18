@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { graphqlClient } from "@/lib/graphql-client";
 import {
   GET_COURSE_BY_CODE,
@@ -83,8 +84,13 @@ export default function CourseDetailPage() {
   const assignInstructorMutation = useMutation({
     mutationFn: (input: any) =>
       graphqlClient.request(ASSIGN_INSTRUCTOR, { input }),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setInstructorFormState("success");
+      if (data.assignInstructor?.warning) {
+        toast.warning(data.assignInstructor.warning, {
+          description: "The instructor was assigned but check the curriculum.",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["course", code] });
       setTimeout(() => {
         setIsInstructorPopoverOpen(false);

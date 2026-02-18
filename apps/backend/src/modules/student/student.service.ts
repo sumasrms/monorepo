@@ -167,4 +167,27 @@ export class StudentService {
 
     return response;
   }
+
+  async getStudentEnrollments(studentId: string) {
+    return this.prisma.enrollment.findMany({
+      where: { studentId },
+      include: {
+        grade: true,
+        course: {
+          include: {
+            instructors: {
+              include: {
+                instructor: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { enrolledAt: 'desc' },
+    });
+  }
 }

@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata } from "next";
 
 import "@workspace/ui/globals.css";
 import { ThemeProvider } from "@workspace/ui/components/theme-provider";
@@ -14,7 +15,14 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
-import { QueryProvider } from "@/components/query-provider";
+import { Providers } from "@/components/providers";
+
+export const metadata: Metadata = {
+  title: {
+    default: "SUMAS Admin Portal",
+    template: "%s | SUMAS Admin",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -27,7 +35,7 @@ export default function RootLayout({
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <Providers>{children}</Providers>
           <Toaster position="top-center" />
         </ThemeProvider>
       </body>

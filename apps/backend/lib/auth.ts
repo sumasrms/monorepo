@@ -2,10 +2,18 @@ import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import prisma from './prisma';
-import { admin, bearer, openAPI, twoFactor } from 'better-auth/plugins';
+import {
+  admin,
+  bearer,
+  openAPI,
+  twoFactor,
+  customSession,
+} from 'better-auth/plugins';
 import { resend } from './email/resend';
 import { ac, roles } from './permissions';
+import type { UserWithRole } from './auth.types';
 import { createAuthMiddleware, APIError } from 'better-auth/api';
+import { AuditCategory } from '@prisma/client';
 
 const from = process.env.BETTER_AUTH_EMAIL || 'delivered@resend.dev';
 const to = process.env.TEST_EMAIL || '';
@@ -23,7 +31,37 @@ const PORTAL_ROLES = {
   admin: [roles.ADMIN],
 } as const;
 
-export const auth = betterAuth({
+async function logAuthEvent(ctx: any, action: string) {
+  try {
+    const returned = (ctx as any).returned as
+      | { user?: { id?: string; role?: string } }
+      | undefined;
+
+    const user = returned?.user;
+    if (!user?.id) {
+      return;
+    }
+
+    const ipAddress =
+      ctx?.headers?.get?.('x-forwarded-for')?.split(',')?.[0]?.trim() || null;
+    const userAgent = ctx?.headers?.get?.('user-agent') || null;
+
+    await prisma.auditLog.create({
+      data: {
+        category: AuditCategory.AUTH,
+        action,
+        actorId: user.id,
+        actorRole: user.role || null,
+        ipAddress,
+        userAgent,
+      },
+    });
+  } catch (error) {
+    return;
+  }
+}
+
+export const auth: any = betterAuth({
   appName: 'Sumas Backend',
   baseURL: process.env.BETTER_AUTH_BASE_URL || 'http://localhost:4000',
   database: prismaAdapter(prisma, {
@@ -99,6 +137,14 @@ export const auth = betterAuth({
       }
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/sign-in/email' || ctx.path === '/sign-in') {
+        await logAuthEvent(ctx, 'LOGIN');
+      }
+
+      if (ctx.path === '/sign-out' || ctx.path === '/sign-out/all') {
+        await logAuthEvent(ctx, 'LOGOUT');
+      }
+
       if (ctx.path !== '/get-session') {
         return;
       }
@@ -115,7 +161,7 @@ export const auth = betterAuth({
 
       const sessionData = (ctx as any).returned as {
         session: any;
-        user: { role: string };
+        user: { id: string; role: string };
       } | null;
 
       if (!sessionData || !sessionData.user) {
@@ -133,8 +179,6 @@ export const auth = betterAuth({
           } as any,
         };
       }
-
-      await Promise.resolve();
     }),
   },
   plugins: [
@@ -148,7 +192,134 @@ export const auth = betterAuth({
     twoFactor(),
     passkey(),
     bearer(),
+    customSession(async ({ user, session }) => {
+      // Fetch the user with role from the database
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          role: true,
+          facultyId: true,
+        },
+      });
+
+      console.log('[CustomSession] User from Better Auth:', { id: user.id, role: (user as any).role });
+      console.log('[CustomSession] User from Database:', dbUser);
+
+      const userWithRole = {
+        ...user,
+        ...(dbUser || {}),
+      } as UserWithRole;
+
+      console.log('[CustomSession] Merged user:', { id: userWithRole.id, role: userWithRole.role });
+
+      // Add staffProfile for staff users
+      if (
+        userWithRole.role &&
+        PORTAL_ROLES.staff.some((role) => role === userWithRole.role)
+      ) {
+        const staffProfile = await prisma.staff.findUnique({
+          where: { userId: userWithRole.id },
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                facultyId: true,
+              },
+            },
+          },
+        });
+
+        if (staffProfile) {
+          let resolvedFacultyId =
+            userWithRole.facultyId || staffProfile.department?.facultyId;
+
+          if (!resolvedFacultyId) {
+            const faculty = await prisma.faculty.findFirst({
+              where: { deanId: userWithRole.id },
+              select: { id: true },
+            });
+            resolvedFacultyId = faculty?.id || undefined;
+          }
+
+          if (resolvedFacultyId && !userWithRole.facultyId) {
+            await prisma.user.update({
+              where: { id: userWithRole.id },
+              data: { facultyId: resolvedFacultyId },
+            });
+          }
+
+          return {
+            user: {
+              ...userWithRole,
+              staffProfile: {
+                id: staffProfile.id,
+                staffNumber: staffProfile.staffNumber,
+                institutionalRank: staffProfile.institutionalRank,
+                designation: staffProfile.designation,
+                dateOfBirth: staffProfile.dateOfBirth,
+                employmentDate: staffProfile.employmentDate,
+                employmentType: staffProfile.employmentType,
+                departmentId: staffProfile.departmentId,
+                qualifications: staffProfile.qualifications,
+                specialization: staffProfile.specialization,
+                department: staffProfile.department,
+                facultyId: resolvedFacultyId,
+              },
+            },
+            session,
+          };
+        }
+      }
+
+      // Add studentProfile for student users
+      if (userWithRole.role === roles.STUDENT) {
+        const studentProfile = await prisma.student.findUnique({
+          where: { userId: userWithRole.id },
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        });
+
+        if (studentProfile) {
+          return {
+            user: {
+              ...userWithRole,
+              studentProfile: {
+                id: studentProfile.id,
+                matricNumber: studentProfile.matricNumber,
+                level: studentProfile.level,
+                departmentId: studentProfile.departmentId,
+                department: studentProfile.department,
+              },
+            },
+            session,
+          };
+        }
+      }
+
+      return { user: userWithRole, session };
+    }),
   ],
+  // advanced: {
+  //   crossSubDomainCookies: {
+  //     enabled: true,
+  //     domain: 'localhost', // Must include the domain
+  //   },
+  //   defaultCookieAttributes: {
+  //     sameSite: 'none',
+  //     secure: false,
+  //     partitioned: true, // New browser standards will mandate this for foreign cookies
+  //   },
+  // },
   trustedOrigins: [
     'http://localhost:3000',
     'http://localhost:3001',

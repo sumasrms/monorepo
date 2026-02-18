@@ -181,6 +181,41 @@ export class StaffService {
     return response;
   }
 
+  async getAssignedCourses(staffId: string) {
+    return this.prisma.courseInstructor.findMany({
+      where: { instructorId: staffId },
+      include: {
+        course: {
+          include: {
+            department: true,
+          },
+        },
+      },
+      orderBy: {
+        course: {
+          code: 'asc',
+        },
+      },
+    });
+  }
+
+  async getByDepartmentForFaculty(departmentId: string, facultyId: string) {
+    const department = await this.prisma.department.findUnique({
+      where: { id: departmentId },
+      select: { facultyId: true },
+    });
+
+    if (!department || department.facultyId !== facultyId) {
+      throw new NotFoundException('Department not found for this faculty');
+    }
+
+    return this.prisma.staff.findMany({
+      where: { departmentId },
+      include: { user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   private mapDesignationToRole(designation?: string): string {
     if (!designation) return roles.LECTURER;
     const d = designation.toLowerCase();

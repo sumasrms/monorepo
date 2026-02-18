@@ -43,6 +43,9 @@ model User {
   twofactors        TwoFactor[]
   department        Department? @relation("UserDepartment", fields: [departmentId], references: [id])
   faculty           Faculty?    @relation("UserFaculty", fields: [facultyId], references: [id])
+  notifications     Notification[]
+  notificationSettings NotificationSettings?
+  fcmTokens         FcmToken[]
 
   @@index([departmentId])
   @@index([facultyId])
@@ -307,7 +310,7 @@ model Result {
   grade            String
   gradePoint       Float
   totalGradePoints Float?
-  status           ResultStatus @default(PENDING)
+  status           ResultStatus @default(DRAFT)
   semester         Semester
   session          String
   uploadedById     String
@@ -318,8 +321,58 @@ model Result {
   student          Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   uploadedBy       Staff        @relation(fields: [uploadedById], references: [id])
 
+  editRequests     ResultEditRequest[]
+  audits           ResultAudit[]
   @@unique([studentId, courseId, semester, session])
   @@map("result")
+}
+
+model ResultAudit {
+  id        String   @id @default(cuid())
+  resultId  String
+  action    String
+  reason    String?
+  actorId   String?
+  actorRole String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  result    Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
+  @@map("result_audit")
+}
+
+model AuditLog {
+  id           String        @id @default(cuid())
+  category     AuditCategory
+  action       String
+  entityType   String?
+  entityId     String?
+  actorId      String?
+  actorRole    String?
+  reason       String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  departmentId String?
+  createdAt    DateTime      @default(now())
+
+  @@index([category])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+model ResultEditRequest {
+  id        String            @id @default(cuid())
+  resultId  String            @unique
+  reason    String
+  status    EditRequestStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  result    Result            @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@map("result_edit_request")
 }
 
 model Approval {
@@ -443,7 +496,8 @@ model ResultAccess {
 model Settings {
   id                   String   @id @default(cuid())
   key                  String   @unique
-  currentSession       String
+  currentSessionId     String?
+  currentSession       AcademicSession? @relation(fields: [currentSessionId], references: [id])
   currentSemester      Semester
   registrationOpen     Boolean  @default(false)
   resultAccessFee      Float    @default(0)
@@ -467,9 +521,11 @@ model AcademicSession {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  settings  Settings[]
 
   @@map("academic_session")
 }
+
 
 model DeviceCode {
   id              String    @id
@@ -484,6 +540,47 @@ model DeviceCode {
   scope           String?
 
   @@map("deviceCode")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification")
+}
+
+model NotificationSettings {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  systemInApp Boolean  @default(true)
+  systemEmail Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model FcmToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  deviceId  String?
+  platform  String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("fcm_token")
 }
 
 enum EnrollmentStatus {
@@ -519,6 +616,7 @@ enum Semester {
 }
 
 enum ResultStatus {
+  DRAFT
   PENDING
   HOD_APPROVED
   DEAN_APPROVED
@@ -541,6 +639,18 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum EditRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuditCategory {
+  RESULT
+  AUTH
+  ADMIN
+}
+
 enum PaymentType {
   RESULT_ACCESS
   TUITION
@@ -552,4 +662,10 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+enum NotificationType {
+  SYSTEM_ANNOUNCEMENT
+  ACCOUNT_UPDATE
+  RESULT_SUBMISSION
 }

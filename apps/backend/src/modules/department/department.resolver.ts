@@ -6,6 +6,7 @@ import {
   ID,
   ResolveField,
   Parent,
+  Context,
 } from '@nestjs/graphql';
 import { DepartmentService } from './department.service';
 import {
@@ -60,6 +61,25 @@ export class DepartmentResolver {
   @Query(() => Department, { name: 'departmentByCode' })
   findByCode(@Args('code') code: string) {
     return this.departmentService.findByCode(code);
+  }
+
+  @Query(() => Department, { name: 'facultyDepartment' })
+  @Roles(roles.DEAN)
+  async findFacultyDepartment(
+    @Args('id', { type: () => ID }) id: string,
+    @Context() context: any,
+  ) {
+    const facultyId =
+      context.req.user.staffProfile?.facultyId || context.req.user.facultyId;
+    if (!facultyId) {
+      throw new Error('Faculty not found for this user');
+    }
+
+    const department = await this.departmentService.findOne(id);
+    if (department.facultyId !== facultyId) {
+      throw new Error('Department not found for this faculty');
+    }
+    return department;
   }
 
   @ResolveField(() => DepartmentStats)

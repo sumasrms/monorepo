@@ -4,9 +4,11 @@ import { Button } from "@workspace/ui/components/button";
 import { useAuth } from "@/lib/auth";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
   const { session, isPending } = useAuth();
+  const router = useRouter();
 
   if (isPending) {
     return (
@@ -43,7 +45,10 @@ export default function Page() {
           variant="outline"
           onClick={async () => {
             await authClient.signOut();
-            window.location.reload();
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("bearer_token");
+            }
+            router.replace("/login");
           }}
         >
           Logout

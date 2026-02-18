@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, InputType, Int } from '@nestjs/graphql';
+import { ObjectType, Field, ID, InputType, Int, Float } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Department } from '../../department/entities/department.entity';
 import { User } from '../../../common/entities/user.entity';
@@ -16,6 +16,99 @@ export class FacultyStats {
 
   @Field(() => Int)
   departmentCount: number;
+}
+
+@ObjectType()
+export class FacultyDepartmentMetric {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  code: string;
+
+  @Field(() => Float)
+  avgGPA: number;
+
+  @Field(() => Float)
+  passRate: number;
+
+  @Field(() => Float)
+  submissionRate: number;
+
+  @Field(() => Int)
+  pendingApprovals: number;
+
+  @Field(() => Int)
+  anomalyCount: number;
+}
+
+@ObjectType()
+export class FacultyDepartmentCount {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  code: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
+export class FacultyLevelMetric {
+  @Field()
+  name: string;
+
+  @Field(() => Float)
+  avgGPA: number;
+
+  @Field(() => Float)
+  passRate: number;
+}
+
+@ObjectType()
+export class FacultySemesterMetric {
+  @Field()
+  name: string;
+
+  @Field(() => Float)
+  avgGPA: number;
+
+  @Field(() => Float)
+  passRate: number;
+}
+
+@ObjectType()
+export class FacultyAnalytics {
+  @Field(() => Float)
+  avgGPA: number;
+
+  @Field(() => Float)
+  passRate: number;
+
+  @Field(() => Float)
+  submissionRate: number;
+
+  @Field(() => [FacultyDepartmentMetric])
+  departmentMetrics: FacultyDepartmentMetric[];
+
+  @Field(() => [FacultyLevelMetric])
+  levelPerformance: FacultyLevelMetric[];
+
+  @Field(() => [FacultySemesterMetric])
+  semesterPerformance: FacultySemesterMetric[];
+
+  @Field(() => [FacultyDepartmentCount])
+  pendingApprovalsByDepartment: FacultyDepartmentCount[];
+
+  @Field(() => [FacultyDepartmentCount])
+  anomalyCountsByDepartment: FacultyDepartmentCount[];
 }
 
 @ObjectType()

@@ -4,6 +4,40 @@ import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconChevronDown, IconMenu2, IconX } from "@tabler/icons-react";
 
+const normalizePath = (path?: string) => {
+  if (!path) return "";
+  if (path === "/") return "/";
+  return path.replace(/\/+$/, "");
+};
+
+const isPathActive = (href: string | undefined, pathname: string) => {
+  if (!href) return false;
+
+  const normalizedHref = normalizePath(href);
+  const normalizedPathname = normalizePath(pathname);
+
+  if (normalizedHref === "/") {
+    return normalizedPathname === "/";
+  }
+
+  if (normalizedHref === "/dashboard") {
+    return normalizedPathname === "/dashboard";
+  }
+
+  return (
+    normalizedPathname === normalizedHref ||
+    normalizedPathname.startsWith(`${normalizedHref}/`)
+  );
+};
+
+const hasActiveDescendant = (link: Links, pathname: string): boolean => {
+  if (!link.children?.length) return false;
+
+  return link.children.some(
+    (child) => isPathActive(child.href, pathname) || hasActiveDescendant(child, pathname),
+  );
+};
+
 export interface Links {
   label: string;
   href?: string;
@@ -115,13 +149,13 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full",
+          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-sidebar text-sidebar-foreground w-full",
         )}
         {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <IconMenu2
-            className="text-neutral-800 dark:text-neutral-200"
+            className="text-sidebar-foreground"
             onClick={() => setOpen(!open)}
           />
         </div>
@@ -136,12 +170,12 @@ export const MobileSidebar = ({
                 ease: "easeInOut",
               }}
               className={cn(
-                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                "fixed h-full w-full inset-0 bg-sidebar text-sidebar-foreground p-10 z-[100] flex flex-col justify-between",
                 className,
               )}
             >
               <div
-                className="absolute right-10 top-10 z-50 text-neutral-800 dark:text-neutral-200"
+                className="absolute right-10 top-10 z-50 text-sidebar-foreground"
                 onClick={() => setOpen(!open)}
               >
                 <IconX />
@@ -173,7 +207,7 @@ export const SidebarSection = ({
             display: animate ? (open ? "block" : "none") : "block",
             opacity: animate ? (open ? 1 : 0) : 1,
           }}
-          className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider px-2 mb-1"
+          className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider px-2 mb-1"
         >
           {label}
         </motion.span>
@@ -191,9 +225,20 @@ export const SidebarLink = ({
   link: Links;
   className?: string;
 }) => {
+  const pathname =
+    typeof window !== "undefined" ? window.location.pathname : "";
   const { open, animate } = useSidebar();
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = link.children && link.children.length > 0;
+  const selfActive = isPathActive(link.href, pathname);
+  const childActive = hasActiveDescendant(link, pathname);
+  const isActive = selfActive || childActive;
+
+  React.useEffect(() => {
+    if (hasChildren && childActive) {
+      setIsOpen(true);
+    }
+  }, [hasChildren, childActive]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (hasChildren) {
@@ -208,7 +253,9 @@ export const SidebarLink = ({
         href={link.href || "#"}
         onClick={handleClick}
         className={cn(
-          "flex items-center justify-between gap-2 group/sidebar py-2 px-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition duration-150",
+          "flex items-center justify-between gap-2 group/sidebar py-2 px-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition duration-150",
+          isActive &&
+            "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
           className,
         )}
         {...props}
@@ -224,7 +271,12 @@ export const SidebarLink = ({
                 : "inline-block",
               opacity: animate ? (open ? 1 : 0) : 1,
             }}
-            className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+            className={cn(
+              "text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0",
+              isActive
+                ? "text-sidebar-accent-foreground"
+                : "text-sidebar-foreground",
+            )}
           >
             {link.label}
           </motion.span>
@@ -234,7 +286,7 @@ export const SidebarLink = ({
             animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <IconChevronDown className="h-4 w-4 text-neutral-500" />
+            <IconChevronDown className="h-4 w-4 text-sidebar-foreground/70" />
           </motion.div>
         )}
       </a>
@@ -245,7 +297,7 @@ export const SidebarLink = ({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden flex flex-col pl-6 border-l border-neutral-300 dark:border-neutral-600 ml-4 mt-1 gap-1"
+              className="overflow-hidden flex flex-col pl-6 border-l border-sidebar-border ml-4 mt-1 gap-1"
             >
               {link.children?.map((child, index) => (
                 <SidebarLink key={index} link={child} />
