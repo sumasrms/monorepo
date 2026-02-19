@@ -69,7 +69,6 @@ export default function StaffBulkUpload({
     },
     onError: (err) => {
       toast.error("Failed to upload staff data.");
-      console.error(err);
     },
   });
 

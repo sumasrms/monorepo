@@ -22,6 +22,7 @@ import {
 } from "@workspace/ui/components/ui/animated-modal";
 import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { motion } from "motion/react";
+import { useSearchParams } from "next/navigation";
 
 export function LoginForm({
   className,
@@ -47,6 +48,13 @@ function LoginFormContent({
   );
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const searchParams = useSearchParams();
+
+  const callbackUrlParam = searchParams.get("callbackUrl");
+  const callbackUrl =
+    callbackUrlParam && callbackUrlParam.startsWith("/")
+      ? callbackUrlParam
+      : "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +63,7 @@ function LoginFormContent({
     await authClient.signIn.email({
       email,
       password,
-      callbackURL: "/",
+      callbackURL: callbackUrl,
       fetchOptions: {
         onRequest: () => {
           setIsLoading(true);
@@ -69,7 +77,7 @@ function LoginFormContent({
           setModalMessage("Login successful. Taking you to your dashboard...");
           setOpen(true);
           setTimeout(() => {
-            window.location.href = "/";
+            window.location.href = callbackUrl;
           }, 1500);
         },
         onError: (err) => {

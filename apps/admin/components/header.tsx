@@ -4,13 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronDown,
   LogOut,
   Settings,
   User,
-  Calendar,
-  Layers,
-  GraduationCap,
   LifeBuoy,
   MessageSquare,
 } from "lucide-react";
@@ -41,14 +37,9 @@ export function DashboardHeader() {
   const pathSegments = pathname.split("/").filter((segment) => segment !== "");
   const [user, setUser] = useState<any>(null);
 
-  const [session, setSession] = useState("2024/2025");
-  const [semester, setSemester] = useState("First Semester");
-  const [faculty, setFaculty] = useState("Science & Technology");
-  const [supportOpen, setSupportOpen] = useState(false);
+const [supportOpen, setSupportOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const sessions = ["2023/2024", "2024/2025", "2025/2026"];
-  const semesters = ["First Semester", "Second Semester"];
 
   useEffect(() => {
     const fetchSession = async () => {

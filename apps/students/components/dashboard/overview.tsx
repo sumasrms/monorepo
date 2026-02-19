@@ -5,6 +5,18 @@ import { gql } from 'graphql-request';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 import { graphqlClient } from '@/lib/graphql-client';
+import { StatCard } from '@workspace/ui/components/stat-card';
+import { GraduationCap, Wallet, BadgeCheck, CircleGauge } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card';
+import { Badge } from '@workspace/ui/components/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@workspace/ui/components/avatar';
+import { Skeleton } from '@workspace/ui/components/skeleton';
 
 const STUDENT_OVERVIEW_QUERY = gql`
   query GetStudentOverview($id: ID!) {
@@ -45,15 +57,14 @@ const PAYMENT_SUMMARY_QUERY = gql`
 
 export default function DashboardOverview() {
   const { data: session } = useAuth();
-  const studentId = session?.user?.studentProfile?.id;
-
-  if (session && !studentId) {
-    return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
-        Student profile not found for this account.
-      </div>
-    );
-  }
+  const userWithProfile = session?.user as
+    | {
+        name?: string;
+        image?: string | null;
+        studentProfile?: { id?: string };
+      }
+    | undefined;
+  const studentId = userWithProfile?.studentProfile?.id;
 
   const { data: studentData, isLoading: studentLoading } = useQuery({
     queryKey: ['student', studentId],
@@ -69,110 +80,130 @@ export default function DashboardOverview() {
     enabled: !!studentId,
   });
 
-  if (studentLoading || paymentLoading) {
-    return <div className="animate-pulse">Loading overview...</div>;
+  if (session && !studentId) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+        Student profile not found for this account.
+      </div>
+    );
+  }
+
+  if (studentId && (studentLoading || paymentLoading)) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="space-y-3">
+            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-4 w-52" />
+          </CardHeader>
+        </Card>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    );
   }
 
   const student = studentData?.student;
   const payment = paymentData?.paymentSummary;
+  const studentName = student?.user?.name || userWithProfile?.name || 'Student';
+  const avatarFallback = studentName
+    .split(' ')
+    .slice(0, 2)
+    .map((part: string) => part[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="rounded-lg border bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Welcome,  {student?.user?.name}</h1>
-            <p className="mt-1 text-blue-100">
-              {student?.matricNumber} • Level {student?.level}
-            </p>
-            <p className="mt-2 text-blue-100">{student?.department?.name}</p>
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Badge variant="outline">Dashboard Overview</Badge>
+            <div>
+              <CardTitle className="text-2xl md:text-3xl">Welcome, {studentName}</CardTitle>
+              <CardDescription className="mt-2">
+                {student?.matricNumber || 'No matric number'} • Level {student?.level || '-'}
+              </CardDescription>
+            </div>
+            <CardDescription>{student?.department?.name || 'No department assigned'}</CardDescription>
           </div>
-          {student?.user?.image && (
-            <img
-              src={student.user.image}
-              alt={student.user.name}
-              className="h-20 w-20 rounded-full border-4 border-white"
-            />
-          )}
-        </div>
-      </div>
+
+          <Avatar size="lg" className="size-16 md:size-20">
+            <AvatarImage src={student?.user?.image || undefined} alt={studentName} />
+            <AvatarFallback>{avatarFallback || 'ST'}</AvatarFallback>
+          </Avatar>
+        </CardHeader>
+
+        <CardContent className="grid grid-cols-1 gap-3 border-t pt-6 md:grid-cols-3">
+          <div className="bg-muted rounded-lg p-3">
+            <p className="text-muted-foreground text-xs">Matric Number</p>
+            <p className="text-sm font-medium">{student?.matricNumber || 'Unavailable'}</p>
+          </div>
+          <div className="bg-muted rounded-lg p-3">
+            <p className="text-muted-foreground text-xs">Department</p>
+            <p className="text-sm font-medium">{student?.department?.code || '-'}</p>
+          </div>
+          <div className="bg-muted rounded-lg p-3">
+            <p className="text-muted-foreground text-xs">Current Level</p>
+            <p className="text-sm font-medium">{student?.level || '-'}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        {/* CGPA Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">CGPA</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {(student?.cgpa || 0).toFixed(2)}
-              </p>
-            </div>
-            <div className="text-4xl">📊</div>
-          </div>
-        </div>
+        <StatCard
+          title="CGPA"
+          value={(student?.cgpa || 0).toFixed(2)}
+          footerLabel="Current performance"
+          footerIcon={CircleGauge}
+        />
 
-        {/* Current Semester Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Current Level</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {student?.level}
-              </p>
-            </div>
-            <div className="text-4xl">📚</div>
-          </div>
-        </div>
+        <StatCard
+          title="Current Level"
+          value={student?.level || '-'}
+          footerLabel="Academic progression"
+          footerIcon={GraduationCap}
+        />
 
-        {/* Payment Status Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Accessed Results</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {payment?.accessedResults?.length || 0}
-              </p>
-            </div>
-            <div className="text-4xl">✅</div>
-          </div>
-        </div>
+        <StatCard
+          title="Accessed Results"
+          value={payment?.accessedResults?.length || 0}
+          footerLabel="Unlocked semesters"
+          footerIcon={BadgeCheck}
+        />
 
-        {/* Total Spent Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Spent</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                ₦{(payment?.totalSpent || 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="text-4xl">💰</div>
-          </div>
-        </div>
+        <StatCard
+          title="Total Spent"
+          value={`₦${(payment?.totalSpent || 0).toLocaleString()}`}
+          footerLabel="All-time payments"
+          footerIcon={Wallet}
+        />
       </div>
 
       {/* Call-to-Action Banners */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* View Results Banner */}
         <Link
-          href="/results"
-          className="block rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 p-6 hover:bg-blue-100 transition-colors"
+          href="/dashboard/results"
+          className="block rounded-xl border p-6 transition-colors hover:bg-muted/40"
         >
-          <h3 className="text-lg font-semibold text-blue-900">View Your Results</h3>
-          <p className="text-sm text-blue-700 mt-1">
+          <h3 className="text-lg font-semibold">View Your Results</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
             Check your semester exam results and academic performance
           </p>
         </Link>
 
-        {/* Payment History Banner */}
         <Link
-          href="/payments"
-          className="block rounded-lg border-2 border-dashed border-green-400 bg-green-50 p-6 hover:bg-green-100 transition-colors"
+          href="/dashboard/payments"
+          className="block rounded-xl border p-6 transition-colors hover:bg-muted/40"
         >
-          <h3 className="text-lg font-semibold text-green-900">Payment History</h3>
-          <p className="text-sm text-green-700 mt-1">
+          <h3 className="text-lg font-semibold">Payment History</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
             Review all your payments and transaction history
           </p>
         </Link>

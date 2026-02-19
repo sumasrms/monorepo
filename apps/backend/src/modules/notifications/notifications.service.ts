@@ -78,7 +78,8 @@ export class NotificationsService {
           userId,
           type: NotificationType.ACCOUNT_UPDATE,
           title: `${titlePrefix} submitted`,
-          message: 'Your request has been received and routed to administrators.',
+          message:
+            'Your request has been received and routed to administrators.',
           data: {
             source: 'support-feedback',
             requestType: input.type,

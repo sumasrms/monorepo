@@ -55,13 +55,17 @@ export class PaymentResolver {
 
   @Query(() => [Payment])
   @Roles(roles.STUDENT)
-  async paymentHistory(@Args('studentId', { type: () => ID }) studentId: string) {
+  async paymentHistory(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getPaymentHistory(studentId);
   }
 
   @Query(() => [ResultAccess])
   @Roles(roles.STUDENT)
-  async studentResultAccess(@Args('studentId', { type: () => ID }) studentId: string) {
+  async studentResultAccess(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getResultAccessByStudent(studentId);
   }
 
@@ -77,7 +81,9 @@ export class PaymentResolver {
 
   @Query(() => StudentPaymentSummary)
   @Roles(roles.STUDENT)
-  async paymentSummary(@Args('studentId', { type: () => ID }) studentId: string) {
+  async paymentSummary(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getPaymentSummary(studentId);
   }
 

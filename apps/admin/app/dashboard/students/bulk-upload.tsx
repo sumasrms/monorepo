@@ -68,7 +68,6 @@ export default function StudentBulkUpload({
     },
     onError: (err) => {
       toast.error("Failed to upload student data.");
-      console.error(err);
     },
   });
 

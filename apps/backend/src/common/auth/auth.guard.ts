@@ -51,23 +51,12 @@ export class AuthGuard implements CanActivate {
       headers: new Headers(req.headers as Record<string, string>),
     });
 
-    console.log('[AuthGuard] Session received:', {
-      userId: session?.user?.id,
-      userRole: (session?.user as any)?.role,
-      sessionId: session?.session?.id,
-    });
-
     if (!session) {
       throw new UnauthorizedException('Not authenticated');
     }
 
     req.session = session;
     req.user = session.user;
-
-    console.log('[AuthGuard] Setting req.user:', {
-      userId: req.user?.id,
-      userRole: req.user?.role,
-    });
 
     return true;
   }

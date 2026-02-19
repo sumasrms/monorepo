@@ -12,7 +12,7 @@ import {
   PaystackInitResponse,
   PaymentVerificationResponse,
 } from './entities/payment.entity';
-import { PaymentStatus, Semester } from '@prisma/client';
+import { PaymentStatus, PaymentType, Semester } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -47,6 +47,22 @@ export class PaymentService {
 
     if (amount <= 0) {
       throw new BadRequestException('Payment amount must be greater than 0');
+    }
+
+    const existingAccess = await this.prisma.resultAccess.findUnique({
+      where: {
+        studentId_semester_session: {
+          studentId,
+          semester,
+          session,
+        },
+      },
+    });
+
+    if (existingAccess) {
+      throw new BadRequestException(
+        'Results for this semester are already unlocked for this student',
+      );
     }
 
     try {
@@ -88,29 +104,73 @@ export class PaymentService {
         throw new InternalServerErrorException('Failed to initialize payment');
       }
 
-      // Save payment record to database
-      const payment = await this.prisma.payment.create({
-        data: {
+      const pendingPayments = await this.prisma.payment.findMany({
+        where: {
           studentId,
-          amount,
-          currency: 'NGN',
-          paymentType: 'RESULT_ACCESS',
-          status: PaymentStatus.PENDING,
-          paystackReference: reference,
-          paystackAccessCode: paystackData.data?.accessCode,
           semester,
           session,
-          metadata: {
-            displayName: student.user.name,
-            email: student.user.email,
-            description: description || 'Result checking fee',
-          },
+          paymentType: PaymentType.RESULT_ACCESS,
+          status: PaymentStatus.PENDING,
         },
+        orderBy: { createdAt: 'desc' },
       });
+
+      const reusablePending = pendingPayments[0];
+      const olderPendingIds = pendingPayments
+        .slice(1)
+        .map((payment) => payment.id);
+
+      if (olderPendingIds.length > 0) {
+        await this.prisma.payment.updateMany({
+          where: { id: { in: olderPendingIds } },
+          data: { status: PaymentStatus.ABANDONED },
+        });
+      }
+
+      const payment = reusablePending
+        ? await this.prisma.payment.update({
+            where: { id: reusablePending.id },
+            data: {
+              amount,
+              currency: 'NGN',
+              paymentType: PaymentType.RESULT_ACCESS,
+              status: PaymentStatus.PENDING,
+              paystackReference: reference,
+              paystackAccessCode: paystackData.data?.accessCode,
+              paystackTransactionId: null,
+              paystackChannel: null,
+              paystackPaidAt: null,
+              metadata: {
+                displayName: student.user.name,
+                email: student.user.email,
+                description: description || 'Result checking fee',
+              },
+            },
+          })
+        : await this.prisma.payment.create({
+            data: {
+              studentId,
+              amount,
+              currency: 'NGN',
+              paymentType: PaymentType.RESULT_ACCESS,
+              status: PaymentStatus.PENDING,
+              paystackReference: reference,
+              paystackAccessCode: paystackData.data?.accessCode,
+              semester,
+              session,
+              metadata: {
+                displayName: student.user.name,
+                email: student.user.email,
+                description: description || 'Result checking fee',
+              },
+            },
+          });
 
       return {
         success: true,
-        message: 'Payment initialized successfully',
+        message: reusablePending
+          ? 'Payment retry initialized successfully'
+          : 'Payment initialized successfully',
         payment,
         authorizationUrl: paystackData.data?.authorization_url,
         accessCode: paystackData.data?.access_code,
@@ -119,7 +179,6 @@ export class PaymentService {
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof NotFoundException) throw error;
-      console.error('Payment initialization error:', error);
       throw new InternalServerErrorException('Failed to initiate payment');
     }
   }
@@ -178,7 +237,7 @@ export class PaymentService {
             semester: payment.semester,
             session: payment.session,
             accessCount: 0,
-            expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+            expiresAt: null,
           },
         });
       }
@@ -191,7 +250,6 @@ export class PaymentService {
       };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      console.error('Payment verification error:', error);
       throw new InternalServerErrorException('Failed to verify payment');
     }
   }
@@ -244,11 +302,6 @@ export class PaymentService {
     });
 
     if (!resultAccess) {
-      return false;
-    }
-
-    // Check if access is still valid (not expired)
-    if (resultAccess.expiresAt && resultAccess.expiresAt < new Date()) {
       return false;
     }
 

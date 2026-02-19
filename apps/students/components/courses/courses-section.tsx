@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { gql } from 'graphql-request';
-import { useAuth } from '@/lib/auth-client';
-import Link from 'next/link';
-import { graphqlClient } from '@/lib/graphql-client';
+import { useQuery } from "@tanstack/react-query";
+import { gql } from "graphql-request";
+import { useAuth } from "@/lib/auth-client";
+import Link from "next/link";
+import { graphqlClient } from "@/lib/graphql-client";
+import { Button } from "@workspace/ui/components/button";
+import { useRouter } from "next/navigation";
+import { MoveRight } from "lucide-react";
 
 const STUDENT_COURSES_QUERY = gql`
   query GetStudentCourses($studentId: ID!) {
@@ -37,7 +40,13 @@ const STUDENT_COURSES_QUERY = gql`
 
 export default function CoursesSection() {
   const { data: session } = useAuth();
-  const studentId = session?.user?.studentProfile?.id;
+  const router = useRouter();
+  const userWithProfile = session?.user as
+    | {
+        studentProfile?: { id?: string };
+      }
+    | undefined;
+  const studentId = userWithProfile?.studentProfile?.id;
 
   if (session && !studentId) {
     return (
@@ -48,9 +57,8 @@ export default function CoursesSection() {
   }
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['studentCourses', studentId],
-    queryFn: () =>
-      graphqlClient.request(STUDENT_COURSES_QUERY, { studentId }),
+    queryKey: ["studentCourses", studentId],
+    queryFn: () => graphqlClient.request(STUDENT_COURSES_QUERY, { studentId }),
     enabled: !!studentId,
   });
 
@@ -129,7 +137,7 @@ export default function CoursesSection() {
                   </td>
                   <td className="px-6 py-4 text-center text-gray-700">
                     {enrollment.course.instructors[0]?.instructor?.user?.name ||
-                      'TBA'}
+                      "TBA"}
                   </td>
                 </tr>
               ))}
@@ -139,12 +147,12 @@ export default function CoursesSection() {
       )}
 
       <div className="border-t px-6 py-4">
-        <Link
-          href="/courses"
-          className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+        <Button
+          onClick={() => router.push("/dashboard/courses")}
+          className="text-sm bg-primary px-4 py-3 rounded-2xl text-white"
         >
-          View All Courses →
-        </Link>
+          View All Courses <MoveRight />
+        </Button>
       </div>
     </div>
   );

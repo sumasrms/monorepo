@@ -91,7 +91,6 @@ export const auth: any = betterAuth({
           subject: 'Verify your email address',
           html: `<a href="${url}">Verify your email address</a>`,
         });
-        console.log(res, user.email);
       },
     },
   },
@@ -203,15 +202,10 @@ export const auth: any = betterAuth({
         },
       });
 
-      console.log('[CustomSession] User from Better Auth:', { id: user.id, role: (user as any).role });
-      console.log('[CustomSession] User from Database:', dbUser);
-
       const userWithRole = {
         ...user,
         ...(dbUser || {}),
       } as UserWithRole;
-
-      console.log('[CustomSession] Merged user:', { id: userWithRole.id, role: userWithRole.role });
 
       // Add staffProfile for staff users
       if (

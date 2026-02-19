@@ -22,7 +22,11 @@ import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { roles } from 'lib/permissions';
 import { PaymentService } from '../payment/payment.service';
-import { Payment, ResultAccess, StudentPaymentSummary } from '../payment/entities/payment.entity';
+import {
+  Payment,
+  ResultAccess,
+  StudentPaymentSummary,
+} from '../payment/entities/payment.entity';
 
 @Resolver(() => Student)
 @UseGuards(AuthGuard, RolesGuard)
@@ -68,25 +72,33 @@ export class StudentResolver {
 
   @Query(() => [Payment])
   @Roles(roles.STUDENT)
-  async studentPayments(@Args('studentId', { type: () => ID }) studentId: string) {
+  async studentPayments(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getPaymentHistory(studentId);
   }
 
   @Query(() => [ResultAccess])
   @Roles(roles.STUDENT)
-  async studentResultAccess(@Args('studentId', { type: () => ID }) studentId: string) {
+  async studentResultAccess(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getResultAccessByStudent(studentId);
   }
 
   @Query(() => StudentPaymentSummary)
   @Roles(roles.STUDENT)
-  async studentPaymentSummary(@Args('studentId', { type: () => ID }) studentId: string) {
+  async studentPaymentSummary(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.paymentService.getPaymentSummary(studentId);
   }
 
   @Query(() => [Enrollment])
   @Roles(roles.STUDENT)
-  async studentCourses(@Args('studentId', { type: () => ID }) studentId: string) {
+  async studentCourses(
+    @Args('studentId', { type: () => ID }) studentId: string,
+  ) {
     return this.studentService.getStudentEnrollments(studentId);
   }
 

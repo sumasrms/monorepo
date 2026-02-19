@@ -1,16 +1,15 @@
 'use client';
 
 import { Suspense } from 'react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import DashboardOverview from '@/components/dashboard/overview';
 import CoursesSection from '@/components/courses/courses-section';
 import ResultsSection from '@/components/results/results-section';
-import StudentNavbar from '@/components/navbar';
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <StudentNavbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Dashboard Overview Section */}
         <Suspense fallback={<div>Loading overview...</div>}>
           <DashboardOverview />
@@ -34,39 +33,46 @@ export default function DashboardPage() {
           <div className="space-y-8">
             {/* Quick Actions */}
             <div className="rounded-lg border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-              <ul className="space-y-3">
+              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Access common student tasks quickly.
+              </p>
+              <ul className="mt-4 space-y-2">
                 <li>
-                  <a
+                  <Link
                     href="/profile"
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="flex items-center justify-between rounded-md border px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
                   >
                     Update Profile
-                  </a>
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </Link>
                 </li>
                 <li>
-                  <a
+                  <Link
                     href="/payments"
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="flex items-center justify-between rounded-md border px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
                   >
                     View Payment History
-                  </a>
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </Link>
                 </li>
                 <li>
-                  <a
+                  <Link
                     href="/transcript"
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="flex items-center justify-between rounded-md border px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
                   >
                     Download Transcript
-                  </a>
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="/curriculum"
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                  <Link
+                    href="/dashboard/courses"
+                    className="flex items-center justify-between rounded-md border px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
                   >
                     View Curriculum
-                  </a>
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -75,10 +81,10 @@ export default function DashboardPage() {
             <div className="rounded-lg border bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold mb-4">Recent Notifications</h3>
               <div className="space-y-3">
-                <div className="text-sm text-gray-600 p-2 bg-blue-50 rounded border-l-4 border-blue-500">
+                <div className="rounded border-l-4 border-gray-400 bg-gray-50 p-2 text-sm text-gray-700">
                   Results for 2024/2025 Semester 1 are now available
                 </div>
-                <div className="text-sm text-gray-600 p-2 bg-green-50 rounded border-l-4 border-green-500">
+                <div className="rounded border-l-4 border-gray-400 bg-gray-50 p-2 text-sm text-gray-700">
                   Payment successful for result checking
                 </div>
               </div>
@@ -86,6 +92,5 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }

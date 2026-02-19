@@ -8,7 +8,16 @@ import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
 import { auth } from 'lib/auth';
 import fastifyMultipart from '@fastify/multipart';
 
+interface AuthAdapter {
+  handler: (request: Request) => Promise<Response>;
+  api: {
+    generateOpenAPISchema: () => Promise<unknown>;
+  };
+}
+
 async function bootstrap() {
+  const typedAuth = auth as AuthAdapter;
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -55,10 +64,6 @@ async function bootstrap() {
           }
         }
 
-        console.log('=== Multipart GraphQL Request ===');
-        console.log('Fields:', Object.keys(fields));
-        console.log('Files:', Object.keys(files));
-
         // Parse operations
         const operationsProp = fields.operations;
         const operations = (
@@ -76,9 +81,6 @@ async function bootstrap() {
               : mapProp
             : {}
         ) as Record<string, string[]>;
-
-        console.log('Parsed operations:', operations);
-        console.log('Parsed map:', map);
 
         // Map files to operations
         if (Object.keys(map).length > 0) {
@@ -164,12 +166,12 @@ async function bootstrap() {
       let body: BodyInit | undefined;
 
       if (request.method !== 'GET' && request.method !== 'HEAD') {
-        const incomingBody = request.body as unknown;
+        const incomingBody = request.body;
 
         if (typeof incomingBody === 'string') {
           body = incomingBody;
         } else if (incomingBody instanceof Uint8Array) {
-          body = incomingBody;
+          body = new Uint8Array(incomingBody).buffer;
         } else if (incomingBody !== undefined && incomingBody !== null) {
           body = JSON.stringify(incomingBody);
         }
@@ -181,7 +183,7 @@ async function bootstrap() {
         body,
       });
 
-      const response = await auth.handler(req);
+      const response = await typedAuth.handler(req);
       reply.status(response.status);
       response.headers.forEach((value, key) => {
         reply.header(key, value);
@@ -200,7 +202,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await auth.api.generateOpenAPISchema();
+  await typedAuth.api.generateOpenAPISchema();
   await app.listen(process.env.PORT ?? 4000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

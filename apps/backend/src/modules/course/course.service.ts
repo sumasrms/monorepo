@@ -424,9 +424,7 @@ export class CourseService {
     });
     if (!instructor) throw new NotFoundException('Instructor not found');
     if (!instructor.departmentId) {
-      throw new NotFoundException(
-        'Instructor has no department assigned',
-      );
+      throw new NotFoundException('Instructor has no department assigned');
     }
 
     // Get course details

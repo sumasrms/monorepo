@@ -195,8 +195,14 @@ export class FacultyService {
     let passCount = 0;
     let totalGp = 0;
 
-    const levelMap = new Map<number, { totalGp: number; count: number; pass: number }>();
-    const semesterMap = new Map<string, { totalGp: number; count: number; pass: number }>();
+    const levelMap = new Map<
+      number,
+      { totalGp: number; count: number; pass: number }
+    >();
+    const semesterMap = new Map<
+      string,
+      { totalGp: number; count: number; pass: number }
+    >();
     const deptMap = new Map<
       string,
       {
@@ -215,7 +221,12 @@ export class FacultyService {
       const exam = result.exam;
       const score = result.score;
 
-      if (ca === null || ca === undefined || exam === null || exam === undefined) {
+      if (
+        ca === null ||
+        ca === undefined ||
+        exam === null ||
+        exam === undefined
+      ) {
         issues.push('Missing CA/Exam');
       }
 
@@ -260,7 +271,11 @@ export class FacultyService {
       totalGp += result.gradePoint || 0;
 
       const level = result.student?.level || 100;
-      const levelEntry = levelMap.get(level) || { totalGp: 0, count: 0, pass: 0 };
+      const levelEntry = levelMap.get(level) || {
+        totalGp: 0,
+        count: 0,
+        pass: 0,
+      };
       levelEntry.totalGp += result.gradePoint || 0;
       levelEntry.count += 1;
       if (result.grade !== 'F') {
@@ -269,7 +284,11 @@ export class FacultyService {
       levelMap.set(level, levelEntry);
 
       const semester = result.semester as string;
-      const semesterEntry = semesterMap.get(semester) || { totalGp: 0, count: 0, pass: 0 };
+      const semesterEntry = semesterMap.get(semester) || {
+        totalGp: 0,
+        count: 0,
+        pass: 0,
+      };
       semesterEntry.totalGp += result.gradePoint || 0;
       semesterEntry.count += 1;
       if (result.grade !== 'F') {
@@ -279,16 +298,14 @@ export class FacultyService {
 
       const dept = result.course?.department;
       if (dept) {
-        const deptEntry =
-          deptMap.get(dept.id) ||
-          {
-            info: { id: dept.id, name: dept.name, code: dept.code },
-            totalGp: 0,
-            count: 0,
-            pass: 0,
-            anomalyCount: 0,
-            submittedCourseIds: new Set<string>(),
-          };
+        const deptEntry = deptMap.get(dept.id) || {
+          info: { id: dept.id, name: dept.name, code: dept.code },
+          totalGp: 0,
+          count: 0,
+          pass: 0,
+          anomalyCount: 0,
+          submittedCourseIds: new Set<string>(),
+        };
 
         deptEntry.totalGp += result.gradePoint || 0;
         deptEntry.count += 1;
@@ -311,22 +328,36 @@ export class FacultyService {
         ...(currentSemester ? { semester: currentSemester } : {}),
       },
       include: {
-        course: { select: { departmentId: true, department: { select: { id: true, name: true, code: true } } } },
+        course: {
+          select: {
+            departmentId: true,
+            department: { select: { id: true, name: true, code: true } },
+          },
+        },
       },
     });
 
-    const pendingMap = new Map<string, { info: { id: string; name: string; code: string }; count: number }>();
+    const pendingMap = new Map<
+      string,
+      { info: { id: string; name: string; code: string }; count: number }
+    >();
     pendingResults.forEach((result) => {
       const dept = result.course?.department;
       if (!dept) return;
-      const entry = pendingMap.get(dept.id) || { info: { id: dept.id, name: dept.name, code: dept.code }, count: 0 };
+      const entry = pendingMap.get(dept.id) || {
+        info: { id: dept.id, name: dept.name, code: dept.code },
+        count: 0,
+      };
       entry.count += 1;
       pendingMap.set(dept.id, entry);
     });
 
     const totalCourseCount = courses.length || 0;
     const totalSubmittedCourses = new Set(results.map((r) => r.courseId)).size;
-    const submissionRate = totalCourseCount > 0 ? (totalSubmittedCourses / totalCourseCount) * 100 : 0;
+    const submissionRate =
+      totalCourseCount > 0
+        ? (totalSubmittedCourses / totalCourseCount) * 100
+        : 0;
 
     const departmentMetrics = departments.map((dept) => {
       const entry = deptMap.get(dept.id);
@@ -336,9 +367,18 @@ export class FacultyService {
         id: dept.id,
         name: dept.name,
         code: dept.code,
-        avgGPA: entry && entry.count > 0 ? Number((entry.totalGp / entry.count).toFixed(2)) : 0,
-        passRate: entry && entry.count > 0 ? Number(((entry.pass / entry.count) * 100).toFixed(1)) : 0,
-        submissionRate: totalCourses > 0 ? Number(((submitted / totalCourses) * 100).toFixed(1)) : 0,
+        avgGPA:
+          entry && entry.count > 0
+            ? Number((entry.totalGp / entry.count).toFixed(2))
+            : 0,
+        passRate:
+          entry && entry.count > 0
+            ? Number(((entry.pass / entry.count) * 100).toFixed(1))
+            : 0,
+        submissionRate:
+          totalCourses > 0
+            ? Number(((submitted / totalCourses) * 100).toFixed(1))
+            : 0,
         pendingApprovals: pendingMap.get(dept.id)?.count || 0,
         anomalyCount: entry?.anomalyCount || 0,
       };
@@ -347,16 +387,24 @@ export class FacultyService {
     const levelPerformance = Array.from(levelMap.entries())
       .map(([level, data]) => ({
         name: `${level} Level`,
-        avgGPA: data.count > 0 ? Number((data.totalGp / data.count).toFixed(2)) : 0,
-        passRate: data.count > 0 ? Number(((data.pass / data.count) * 100).toFixed(1)) : 0,
+        avgGPA:
+          data.count > 0 ? Number((data.totalGp / data.count).toFixed(2)) : 0,
+        passRate:
+          data.count > 0
+            ? Number(((data.pass / data.count) * 100).toFixed(1))
+            : 0,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const semesterPerformance = Array.from(semesterMap.entries())
       .map(([name, data]) => ({
         name: name.replace('_', ' '),
-        avgGPA: data.count > 0 ? Number((data.totalGp / data.count).toFixed(2)) : 0,
-        passRate: data.count > 0 ? Number(((data.pass / data.count) * 100).toFixed(1)) : 0,
+        avgGPA:
+          data.count > 0 ? Number((data.totalGp / data.count).toFixed(2)) : 0,
+        passRate:
+          data.count > 0
+            ? Number(((data.pass / data.count) * 100).toFixed(1))
+            : 0,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -374,7 +422,8 @@ export class FacultyService {
       count: deptMap.get(dept.id)?.anomalyCount || 0,
     }));
 
-    const passRate = results.length > 0 ? (passCount / results.length) * 100 : 0;
+    const passRate =
+      results.length > 0 ? (passCount / results.length) * 100 : 0;
     const avgGPA = results.length > 0 ? totalGp / results.length : 0;
 
     return {

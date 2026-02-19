@@ -243,10 +243,7 @@ export class ResultService {
       include: {
         course: true,
       },
-      orderBy: [
-        { session: 'desc' },
-        { semester: 'asc' },
-      ],
+      orderBy: [{ session: 'desc' }, { semester: 'asc' }],
     });
   }
 
@@ -848,9 +845,7 @@ export class ResultService {
           departmentId,
         },
         ...(filters.courseId ? { courseId: filters.courseId } : {}),
-        ...(filters.semester
-          ? { semester: filters.semester as any }
-          : {}),
+        ...(filters.semester ? { semester: filters.semester as any } : {}),
         ...(filters.session ? { session: filters.session } : {}),
       },
       include: {
@@ -887,15 +882,11 @@ export class ResultService {
         course: {
           department: {
             facultyId,
-            ...(filters.departmentId
-              ? { id: filters.departmentId }
-              : {}),
+            ...(filters.departmentId ? { id: filters.departmentId } : {}),
           },
         },
         ...(filters.courseId ? { courseId: filters.courseId } : {}),
-        ...(filters.semester
-          ? { semester: filters.semester as any }
-          : {}),
+        ...(filters.semester ? { semester: filters.semester as any } : {}),
         ...(filters.session ? { session: filters.session } : {}),
       },
       include: {
@@ -934,9 +925,7 @@ export class ResultService {
       filters.facultyId || filters.departmentId
         ? {
             department: {
-              ...(filters.departmentId
-                ? { id: filters.departmentId }
-                : {}),
+              ...(filters.departmentId ? { id: filters.departmentId } : {}),
               ...(filters.facultyId ? { facultyId: filters.facultyId } : {}),
             },
           }
@@ -946,13 +935,9 @@ export class ResultService {
       where: {
         ...(courseFilter ? { course: courseFilter } : {}),
         ...(filters.courseId ? { courseId: filters.courseId } : {}),
-        ...(filters.semester
-          ? { semester: filters.semester as any }
-          : {}),
+        ...(filters.semester ? { semester: filters.semester as any } : {}),
         ...(filters.session ? { session: filters.session } : {}),
-        ...(filters.status
-          ? { status: filters.status as ResultStatus }
-          : {}),
+        ...(filters.status ? { status: filters.status as ResultStatus } : {}),
       },
       include: {
         course: {
@@ -982,10 +967,7 @@ export class ResultService {
     });
   }
 
-  async getResultAuditsByFaculty(
-    facultyId: string,
-    departmentId?: string,
-  ) {
+  async getResultAuditsByFaculty(facultyId: string, departmentId?: string) {
     return this.prisma.resultAudit.findMany({
       where: {
         result: {

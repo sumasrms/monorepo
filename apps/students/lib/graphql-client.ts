@@ -4,18 +4,13 @@ import { getAuthHeaders, getGraphqlEndpoint } from "./api";
 const endpoint = getGraphqlEndpoint();
 
 export const graphqlClient = new GraphQLClient(endpoint, {
-  fetchOptions: {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  },
   requestMiddleware: (request) => ({
     ...request,
     headers: {
       ...request.headers,
       ...getAuthHeaders(),
       "x-portal-type": "student",
+      "Content-Type": "application/json",
     },
   }),
 });
