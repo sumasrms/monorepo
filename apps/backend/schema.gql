@@ -1,0 +1,988 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AcademicSession {
+  createdAt: DateTime!
+  endDate: DateTime!
+  id: ID!
+  isActive: Boolean!
+  isCurrent: Boolean!
+  session: String!
+  startDate: DateTime!
+  updatedAt: DateTime!
+}
+
+type AcademicSettings {
+  currentSemester: Semester!
+  currentSession: AcademicSession
+  currentSessionId: String
+  id: String!
+  lateRegistrationFee: Float!
+  maintenanceMessage: String
+  maintenanceMode: Boolean!
+  registrationOpen: Boolean!
+  resultAccessFee: Float!
+  resultPublishEnabled: Boolean!
+}
+
+type Approval {
+  deanApprovedAt: DateTime
+  deanApprovedBy: User
+  deanApprovedById: String
+  deanRemarks: String
+  deanStatus: ApprovalStatus!
+  hodApprovedAt: DateTime
+  hodApprovedBy: User
+  hodApprovedById: String
+  hodRemarks: String
+  hodStatus: ApprovalStatus!
+  id: ID!
+  resultId: String!
+  senateApprovedAt: DateTime
+  senateApprovedBy: User
+  senateApprovedById: String
+  senateRemarks: String
+  senateStatus: ApprovalStatus!
+}
+
+enum ApprovalStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
+input AssignInstructorInput {
+  courseId: String!
+  instructorId: String!
+  isPrimary: Boolean! = false
+}
+
+type AssignInstructorResult {
+  assignment: CourseInstructor!
+  warning: String
+}
+
+enum AuditCategory {
+  ADMIN
+  AUTH
+  RESULT
+}
+
+type AuditLog {
+  action: String!
+  actorId: String
+  actorRole: String
+  category: AuditCategory!
+  createdAt: DateTime!
+  departmentId: String
+  entityId: String
+  entityType: String
+  id: ID!
+  ipAddress: String
+  metadata: JSONObject
+  reason: String
+  userAgent: String
+}
+
+input AuditLogFilterInput {
+  action: String
+  actorId: String
+  actorRole: String
+  category: AuditCategory
+  departmentId: String
+  entityId: String
+  entityType: String
+  from: String
+  skip: Int
+  take: Int
+  to: String
+}
+
+input BorrowCourseInput {
+  courseId: String!
+  courseType: CourseType! = ELECTIVE
+  departmentId: String!
+  level: Int
+  semester: Semester
+}
+
+type BulkUploadError {
+  error: String!
+  row: Float!
+}
+
+type BulkUploadResponse {
+  errorCount: Float!
+  errors: [BulkUploadError!]!
+  successCount: Float!
+}
+
+type BulkUploadStudentError {
+  error: String!
+  row: Int!
+}
+
+type BulkUploadStudentResponse {
+  errorCount: Int!
+  errors: [BulkUploadStudentError!]!
+  successCount: Int!
+}
+
+type ChartDataPoint {
+  name: String!
+  value: Float!
+}
+
+type Course {
+  academicYear: String!
+  code: String!
+  createdAt: DateTime!
+  credits: Int!
+  department: Department
+  departmentId: String!
+  departmentOfferings: [DepartmentCourse!]
+  description: String
+  enrollments: [Enrollment!]
+  id: ID!
+  instructors: [CourseInstructor!]
+  isActive: Boolean!
+  level: Int!
+  semester: Semester!
+  title: String!
+  updatedAt: DateTime!
+}
+
+type CourseInstructor {
+  course: Course
+  courseId: String!
+  id: ID!
+  instructor: Staff
+  instructorId: String!
+  isPrimary: Boolean!
+}
+
+enum CourseType {
+  COMPULSORY
+  ELECTIVE
+}
+
+input CreateCourseInput {
+  academicYear: String!
+  code: String!
+  credits: Int!
+  departmentId: String!
+  description: String
+  level: Int! = 100
+  semester: Semester!
+  title: String!
+}
+
+input CreateDepartmentInput {
+  code: String!
+  description: String
+  facultyId: String!
+  hodId: String
+  name: String!
+  numberOfYears: Int! = 4
+}
+
+input CreateFacultyInput {
+  code: String!
+  deanId: String
+  description: String
+  name: String!
+}
+
+input CreateGradeScaleInput {
+  departmentId: String!
+  description: String
+  grade: String!
+  gradePoint: Float!
+  maxScore: Float!
+  minScore: Float!
+}
+
+input CreateSessionInput {
+  endDate: DateTime!
+  session: String!
+  startDate: DateTime!
+}
+
+input CreateStaffInput {
+  credentialKey: String
+  dateOfBirth: DateTime!
+  departmentId: String
+  designation: String
+  email: String!
+  employmentDate: DateTime!
+  employmentType: EmploymentType! = FULL_TIME
+  facultyId: String
+  gender: Gender
+  institutionalRank: String!
+  name: String!
+  staffNumber: String!
+}
+
+input CreateStudentInput {
+  admissionDate: DateTime!
+  credentialKey: String
+  departmentId: String!
+  email: String!
+  gender: String!
+  level: Int!
+  matricNumber: String!
+  name: String!
+  programId: String
+}
+
+type DashboardAnalytics {
+  studentsByFaculty: [ChartDataPoint!]!
+}
+
+type DashboardStats {
+  courseCount: Int!
+  departmentCount: Int!
+  facultyCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input DeanApproveResultsInput {
+  remarks: String
+  resultIds: [ID!]!
+}
+
+input DeanRejectResultsInput {
+  remarks: String!
+  resultIds: [ID!]!
+}
+
+type Department {
+  code: String!
+  createdAt: DateTime!
+  description: String
+  faculty: Faculty
+  facultyId: String!
+  hod: User
+  hodId: String
+  id: ID!
+  name: String!
+  numberOfYears: Int!
+  stats: DepartmentStats
+  updatedAt: DateTime!
+}
+
+type DepartmentAnalytics {
+  avgGPByLevel: [ChartDataPoint!]!
+  gradeDistribution: [ChartDataPoint!]!
+  passRate: Float!
+}
+
+type DepartmentCourse {
+  academicYear: String
+  course: Course
+  courseId: String!
+  courseType: CourseType!
+  department: Department
+  departmentId: String!
+  id: ID!
+  level: Int
+  semester: Semester
+}
+
+type DepartmentStats {
+  courseCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+enum EditRequestStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
+enum EmploymentType {
+  CONTRACT
+  FULL_TIME
+  PART_TIME
+  VISITING
+}
+
+input EnrollStudentsInput {
+  departmentId: String!
+  level: Int!
+  semester: String!
+  session: String!
+}
+
+type Enrollment {
+  course: Course
+  courseId: String!
+  enrolledAt: DateTime!
+  grade: Grade
+  id: ID!
+  status: EnrollmentStatus!
+  student: Student
+  studentId: String!
+  updatedAt: DateTime!
+}
+
+type EnrollmentResult {
+  enrolledCount: Int!
+  message: String!
+  totalCourses: Int
+  totalStudents: Int
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  WITHDRAWN
+}
+
+type Faculty {
+  code: String!
+  createdAt: DateTime!
+  dean: User
+  deanId: String
+  departments: [Department!]
+  description: String
+  id: ID!
+  name: String!
+  stats: FacultyStats
+  updatedAt: DateTime!
+}
+
+type FacultyAnalytics {
+  anomalyCountsByDepartment: [FacultyDepartmentCount!]!
+  avgGPA: Float!
+  departmentMetrics: [FacultyDepartmentMetric!]!
+  levelPerformance: [FacultyLevelMetric!]!
+  passRate: Float!
+  pendingApprovalsByDepartment: [FacultyDepartmentCount!]!
+  semesterPerformance: [FacultySemesterMetric!]!
+  submissionRate: Float!
+}
+
+type FacultyDepartmentCount {
+  code: String!
+  count: Int!
+  id: ID!
+  name: String!
+}
+
+type FacultyDepartmentMetric {
+  anomalyCount: Int!
+  avgGPA: Float!
+  code: String!
+  id: ID!
+  name: String!
+  passRate: Float!
+  pendingApprovals: Int!
+  submissionRate: Float!
+}
+
+type FacultyLevelMetric {
+  avgGPA: Float!
+  name: String!
+  passRate: Float!
+}
+
+type FacultySemesterMetric {
+  avgGPA: Float!
+  name: String!
+  passRate: Float!
+}
+
+type FacultyStats {
+  courseCount: Int!
+  departmentCount: Int!
+  staffCount: Int!
+  studentCount: Int!
+}
+
+type FcmToken {
+  createdAt: DateTime!
+  deviceId: String
+  id: ID!
+  platform: String
+  token: String!
+  userId: String!
+}
+
+input FcmTokenParamDto {
+  token: String!
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+input GetNotificationsQueryDto {
+  limit: Int = 20
+  offset: Int = 0
+}
+
+input GetSettingInput {
+  key: String!
+}
+
+input GetSettingsByCategoryInput {
+  category: String!
+}
+
+type Grade {
+  enrollmentId: String!
+  grade: String!
+  gradedAt: DateTime!
+  gradedBy: String!
+  id: ID!
+  remarks: String
+  score: Float!
+  studentId: String!
+  updatedAt: DateTime!
+}
+
+type GradeScale {
+  createdAt: DateTime!
+  departmentId: String!
+  description: String
+  grade: String!
+  gradePoint: Float!
+  id: ID!
+  maxScore: Float!
+  minScore: Float!
+  updatedAt: DateTime!
+}
+
+input HodApproveResultsInput {
+  remarks: String
+  resultIds: [ID!]!
+}
+
+input HodRejectResultsInput {
+  remarks: String!
+  resultIds: [ID!]!
+}
+
+input InitiatePaymentInput {
+  amount: Float!
+  description: String!
+  paymentType: String!
+  semester: String!
+  session: String!
+  studentId: String!
+}
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
+
+type Mutation {
+  activateSession(semester: Semester!, sessionId: ID!): AcademicSession!
+  approveEditRequest(id: ID!): ResultEditRequest!
+  assignInstructor(input: AssignInstructorInput!): AssignInstructorResult!
+  borrowCourse(input: BorrowCourseInput!): Boolean!
+  bulkUploadStaff(inputs: [CreateStaffInput!]!): BulkUploadResponse!
+  bulkUploadStudents(inputs: [CreateStudentInput!]!): BulkUploadStudentResponse!
+  createCourse(input: CreateCourseInput!): Course!
+  createDepartment(input: CreateDepartmentInput!): Department!
+  createFaculty(input: CreateFacultyInput!): Faculty!
+  createGradeScale(input: CreateGradeScaleInput!): GradeScale!
+  createSession(input: CreateSessionInput!): AcademicSession!
+  createStaff(input: CreateStaffInput!): Staff!
+  createStudent(input: CreateStudentInput!): Student!
+  deanApproveResults(input: DeanApproveResultsInput!): [Result!]!
+  deanRejectResults(input: DeanRejectResultsInput!): [Result!]!
+  deleteNotification(id: String!): Boolean!
+  deleteSetting(key: String!): SystemSettings!
+  deleteUpload(publicId: String!, resourceType: String = "image"): Boolean!
+  enrollStudentsInCurriculumBatch(input: EnrollStudentsInput!): EnrollmentResult!
+  hodApproveResults(input: HodApproveResultsInput!): [Result!]!
+  hodRejectResults(input: HodRejectResultsInput!): [Result!]!
+  initiatePayment(input: InitiatePaymentInput!): PaymentResponse!
+  markAllNotificationsAsRead: Boolean!
+  markNotificationAsRead(id: String!): Notification!
+  registerFcmToken(input: RegisterFcmTokenDto!): FcmToken!
+  rejectEditRequest(id: ID!, remarks: String!): ResultEditRequest!
+  removeCourse(id: ID!): Course!
+  removeCourseFromDepartment(courseId: String!, departmentId: String!): Boolean!
+  removeDepartment(id: ID!): Department!
+  removeFaculty(id: ID!): Faculty!
+  removeFcmToken(input: FcmTokenParamDto!): Boolean!
+  removeGradeScale(id: ID!): GradeScale!
+  removeStaff(id: ID!): Boolean!
+  requestResultEdit(input: RequestEditInput!): ResultEditRequest!
+  resetSettingsCategory(category: String!): Boolean!
+  senateApproveResults(input: SenateApproveResultsInput!): [Result!]!
+  senatePublishResults(resultIds: [ID!]!): Boolean!
+  senateRejectResults(input: SenateRejectResultsInput!): [Result!]!
+  sendNotification(input: SendNotificationDto!): Boolean!
+  submitResultsToHod(input: SubmitResultsInput!): [Result!]!
+  submitSupportFeedback(input: SubmitSupportFeedbackDto!): Boolean!
+  updateCourse(id: ID!, input: UpdateCourseInput!): Course!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  updateFaculty(id: ID!, input: UpdateFacultyInput!): Faculty!
+  updateGradeScale(id: ID!, input: UpdateGradeScaleInput!): GradeScale!
+  updateMultipleSettings(inputs: [UpdateSettingInput!]!): [SystemSettings!]!
+  updateNotificationSettings(input: UpdateNotificationSettingsDto!): NotificationSettings!
+  updateProfileImage(image: String!): User!
+  updateResult(input: UpdateResultInput!): Result!
+  updateSession(input: UpdateSessionInput!): AcademicSession!
+  updateSetting(input: UpdateSettingInput!): SystemSettings!
+  updateStaff(id: ID!, input: UpdateStaffInput!): Staff!
+  updateStudent(id: ID!, input: UpdateStudentInput!): Student!
+  uploadFile(file: Upload!, folder: String): UploadResponse!
+  uploadImage(file: Upload!): UploadResponse!
+  uploadMultipleImages(files: [Upload!]!): [UploadResponse!]!
+  uploadResults(input: UploadResultInput!): [Result!]!
+  verifyPayment(reference: String!): PaymentResponse!
+}
+
+type Notification {
+  createdAt: DateTime!
+  data: JSONObject
+  id: ID!
+  isRead: Boolean!
+  message: String!
+  title: String!
+  type: String!
+  updatedAt: DateTime!
+  userId: String!
+}
+
+type NotificationSettings {
+  createdAt: DateTime!
+  id: ID!
+  systemEmail: Boolean!
+  systemInApp: Boolean!
+  updatedAt: DateTime!
+  userId: String!
+}
+
+type Payment {
+  amount: Float!
+  createdAt: DateTime!
+  currency: String!
+  id: ID!
+  metadata: PaymentMetadata
+  paymentResultAccess: ResultAccess
+  paymentType: String!
+  paystackAccessCode: String
+  paystackChannel: String
+  paystackPaidAt: DateTime
+  paystackReference: String!
+  paystackTransactionId: String
+  resultAccess: ResultAccess
+  semester: String!
+  session: String!
+  status: String!
+  studentId: String!
+  updatedAt: DateTime!
+}
+
+type PaymentMetadata {
+  description: String
+  displayName: String
+  email: String
+
+  """Additional metadata"""
+  extra: String
+}
+
+type PaymentResponse {
+  accessCode: String
+  authorizationUrl: String
+  message: String!
+  payment: Payment
+  reference: String
+  resultAccess: ResultAccess
+  success: Boolean!
+}
+
+type PaymentVerificationData {
+  amount: Float!
+  channel: String!
+  paidAt: DateTime!
+  reference: String!
+  status: String!
+}
+
+type PaystackData {
+  accessCode: String!
+  authorizationUrl: String!
+  reference: String!
+}
+
+type Query {
+  auditLogs(filter: AuditLogFilterInput): [AuditLog!]!
+  canAccessResults(semester: Semester!, session: String!, studentId: ID!): Boolean!
+  course(id: ID!): Course!
+  courseByCode(code: String!): Course!
+  courses: [Course!]!
+  dashboardAnalytics: DashboardAnalytics!
+  dashboardStats: DashboardStats!
+  department(id: ID!): Department!
+  departmentByCode(code: String!): Department!
+  departmentOfferings(departmentId: String!): [DepartmentCourse!]!
+  departments: [Department!]!
+  faculties: [Faculty!]!
+  faculty(id: ID!): Faculty!
+  facultyByCode(code: String!): Faculty!
+  facultyDepartment(id: ID!): Department!
+  getAcademicSettings: AcademicSettings
+  getAllSessions: [AcademicSession!]!
+  getAllSettings: [SystemSettings!]!
+  getCurrentSession: AcademicSession
+  getSetting(input: GetSettingInput!): SystemSettings
+  getSettingsByCategory(input: GetSettingsByCategoryInput!): [SystemSettings!]!
+  gradeScale(id: ID!): GradeScale!
+  gradeScales(departmentId: String!): [GradeScale!]!
+  healthCheck: String!
+  myDepartmentAnalytics: DepartmentAnalytics!
+  myDepartmentOfferings: [DepartmentCourse!]!
+  myDepartmentStats: DashboardStats!
+  myEditRequests: [ResultEditRequest!]!
+  myFacultyAnalytics: FacultyAnalytics!
+  myFacultyDepartments: [Department!]!
+  myFacultyStats: FacultyStats!
+  notificationSettings: NotificationSettings!
+  notificationUnreadCount: Int!
+  notifications(query: GetNotificationsQueryDto): [Notification!]!
+  paymentHistory(studentId: ID!): [Payment!]!
+  paymentSummary(studentId: ID!): StudentPaymentSummary!
+  pendingEditRequestsByDepartment: [ResultEditRequest!]!
+  pendingResultsByDepartment: [Result!]!
+  pendingResultsByFaculty: [Result!]!
+  pendingResultsForSenate: [Result!]!
+  recentActivities: [RecentActivity!]!
+  resultAuditsByCourse(courseId: String!): [ResultAudit!]!
+  resultAuditsByDepartment: [ResultAudit!]!
+  resultAuditsByFaculty(departmentId: ID): [ResultAudit!]!
+  resultAuditsForSenate: [ResultAudit!]!
+  resultsByCourse(courseId: String!, semester: String!, session: String!): [Result!]!
+  resultsByDepartment(courseId: String, semester: String, session: String): [Result!]!
+  resultsByFaculty(courseId: String, departmentId: ID, semester: String, session: String): [Result!]!
+  resultsForSenate(courseId: String, departmentId: ID, facultyId: ID, semester: String, session: String, status: String): [Result!]!
+  staff(id: ID!): Staff!
+  staffByDepartment(departmentId: String!): [Staff!]!
+  staffs: [Staff!]!
+  student(id: ID!): Student!
+  studentCourses(studentId: ID!): [Enrollment!]!
+  studentPaymentSummary(studentId: ID!): StudentPaymentSummary!
+  studentPayments(studentId: ID!): [Payment!]!
+  studentResultAccess(studentId: ID!): [ResultAccess!]!
+  studentResults(studentId: ID!): [Result!]!
+  students: [Student!]!
+  universityAnalytics: DepartmentAnalytics!
+  userFcmTokens: [FcmToken!]!
+  validateStudentCourseRegistration(courseId: String!, semester: String!, studentId: String!): ValidationResult!
+}
+
+type RecentActivity {
+  description: String!
+  id: String!
+  timestamp: DateTime!
+  type: String!
+}
+
+input RegisterFcmTokenDto {
+  deviceId: String
+  platform: String
+  token: String!
+}
+
+input RequestEditInput {
+  reason: String!
+  resultId: String!
+}
+
+type Result {
+  approval: Approval
+  audits: [ResultAudit!]
+  ca: Float
+  course: Course
+  courseId: String!
+  createdAt: DateTime!
+  editRequests: [ResultEditRequest!]
+  exam: Float
+  grade: String!
+  gradePoint: Float!
+  id: ID!
+  score: Float!
+  semester: Semester!
+  session: String!
+  status: ResultStatus!
+  student: Student
+  studentId: String!
+  totalGradePoints: Float
+  updatedAt: DateTime!
+  uploadedBy: Staff
+  uploadedById: String!
+}
+
+type ResultAccess {
+  accessCount: Int!
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: ID!
+  payment: Payment
+  paymentId: String!
+  semester: String!
+  session: String!
+  studentId: String!
+  updatedAt: DateTime!
+}
+
+type ResultAudit {
+  action: String!
+  actorId: String
+  actorRole: String
+  createdAt: DateTime!
+  id: ID!
+  metadata: JSONObject
+  reason: String
+  result: Result
+  resultId: String!
+}
+
+type ResultEditRequest {
+  createdAt: DateTime!
+  id: ID!
+  reason: String!
+  result: Result
+  resultId: String!
+  status: EditRequestStatus!
+  updatedAt: DateTime!
+}
+
+enum ResultStatus {
+  DEAN_APPROVED
+  DRAFT
+  HOD_APPROVED
+  PENDING
+  PUBLISHED
+  REJECTED
+  SENATE_APPROVED
+}
+
+enum Semester {
+  FIRST
+  SECOND
+}
+
+input SenateApproveResultsInput {
+  remarks: String
+  resultIds: [ID!]!
+}
+
+input SenateRejectResultsInput {
+  remarks: String!
+  resultIds: [ID!]!
+}
+
+input SendNotificationDto {
+  data: JSONObject
+  message: String!
+  sendEmail: Boolean
+  sendInApp: Boolean
+  sendPush: Boolean
+  title: String!
+  type: String!
+  userId: String!
+}
+
+input SingleResultInput {
+  ca: Float
+  exam: Float
+  studentId: String!
+}
+
+type Staff {
+  assignedCourses: [CourseInstructor!]
+  dateOfBirth: DateTime!
+  departmentId: String
+  designation: String
+  employmentDate: DateTime!
+  employmentType: EmploymentType!
+  id: ID!
+  institutionalRank: String!
+  qualifications: String
+  specialization: String
+  staffNumber: String!
+  user: User!
+}
+
+type Student {
+  admissionDate: DateTime!
+  cgpa: Float
+  department: Department
+  departmentId: String
+  id: ID!
+  level: Int!
+  matricNumber: String!
+  programId: String
+  user: User!
+  userId: String!
+}
+
+type StudentPaymentSummary {
+  accessedResults: [ResultAccess!]!
+  recentPayments: [Payment!]!
+  totalSpent: Float!
+  totalTransactions: Int!
+}
+
+input SubmitResultsInput {
+  courseId: String!
+  resultIds: [ID!]
+  semester: String!
+  session: String!
+}
+
+input SubmitSupportFeedbackDto {
+  category: String!
+  currentPath: String
+  message: String!
+  portalType: String
+  priority: String!
+  subject: String!
+  type: String!
+}
+
+type SystemSettings {
+  category: String!
+  createdAt: DateTime!
+  id: String!
+  key: String!
+  updatedAt: DateTime!
+  value: String!
+}
+
+input UpdateCourseInput {
+  academicYear: String
+  credits: Int
+  description: String
+  isActive: Boolean
+  level: Int
+  semester: Semester
+  title: String
+}
+
+input UpdateDepartmentInput {
+  code: String
+  description: String
+  facultyId: String
+  hodId: String
+  name: String
+  numberOfYears: Int
+}
+
+input UpdateFacultyInput {
+  code: String
+  deanId: String
+  description: String
+  name: String
+}
+
+input UpdateGradeScaleInput {
+  description: String
+  grade: String
+  gradePoint: Float
+  maxScore: Float
+  minScore: Float
+}
+
+input UpdateNotificationSettingsDto {
+  systemEmail: Boolean
+  systemInApp: Boolean
+}
+
+input UpdateResultInput {
+  ca: Float
+  exam: Float
+  resultId: String!
+}
+
+input UpdateSessionInput {
+  endDate: DateTime
+  id: String!
+  isActive: Boolean
+  session: String
+  startDate: DateTime
+}
+
+input UpdateSettingInput {
+  category: String
+  key: String!
+  value: String!
+}
+
+input UpdateStaffInput {
+  dateOfBirth: DateTime
+  departmentId: String
+  designation: String
+  employmentDate: DateTime
+  employmentType: EmploymentType
+  facultyId: String
+  gender: Gender
+  institutionalRank: String
+  name: String
+}
+
+input UpdateStudentInput {
+  admissionDate: DateTime
+  credentialKey: String
+  departmentId: String
+  email: String
+  gender: String
+  level: Int
+  matricNumber: String
+  name: String
+  programId: String
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+type UploadResponse {
+  bytes: Float
+  format: String
+  height: Float
+  publicId: String!
+  resourceType: String
+  secureUrl: String!
+  url: String!
+  width: Float
+}
+
+input UploadResultInput {
+  courseId: String!
+  results: [SingleResultInput!]!
+  semester: String
+  session: String
+}
+
+type User {
+  email: String!
+  gender: Gender
+  id: ID!
+  image: String
+  name: String!
+}
+
+type ValidationResult {
+  isValid: Boolean!
+  reason: String
+}
