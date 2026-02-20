@@ -184,7 +184,7 @@ export const auth: any = betterAuth({
     openAPI(),
     admin({
       /* cspell:disable-next-line */
-      adminUserIds: ['EXD5zjob2SD6CBWcEQ6OpLRHcyoUbnaB'],
+      adminUserIds: ['zryG4nZcBS0VsT0rbGjxFXxRlUcIl0cV'],
       ac,
       defaultRole: roles.STUDENT,
     }),
@@ -303,17 +303,13 @@ export const auth: any = betterAuth({
       return { user: userWithRole, session };
     }),
   ],
-  // advanced: {
-  //   crossSubDomainCookies: {
-  //     enabled: true,
-  //     domain: 'localhost', // Must include the domain
-  //   },
-  //   defaultCookieAttributes: {
-  //     sameSite: 'none',
-  //     secure: false,
-  //     partitioned: true, // New browser standards will mandate this for foreign cookies
-  //   },
-  // },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      partitioned: process.env.NODE_ENV === 'production',
+    },
+  },
   trustedOrigins: [
     'http://localhost:3000',
     'http://localhost:3001',
