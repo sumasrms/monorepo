@@ -322,5 +322,6 @@ export const auth: any = betterAuth({
     'https://sumas-admin.vercel.app',
     'https://sumas-staffs.vercel.app',
     'https://sumas-students.vercel.app',
+    'https://sumas-2z59.onrender.com',
   ],
 });

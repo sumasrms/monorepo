@@ -235,6 +235,7 @@ async function bootstrap() {
         'https://sumas-admin.vercel.app',
         'https://sumas-staffs.vercel.app',
         'https://sumas-students.vercel.app',
+        'https://sumas-2z59.onrender.com',
       ],
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
