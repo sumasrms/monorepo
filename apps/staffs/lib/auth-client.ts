@@ -2,7 +2,6 @@ import { createAuthClient } from "better-auth/react";
 import { adminClient } from "better-auth/client/plugins";
 import { customSessionClient } from "better-auth/client/plugins";
 import { ac } from "../../backend/lib/permissions";
-import type { auth } from "../../backend/lib/auth";
 import { getApiBaseUrl } from "./api";
 
 export const authClient = createAuthClient({
@@ -22,7 +21,7 @@ export const authClient = createAuthClient({
     adminClient({
       ac,
     }),
-    customSessionClient<typeof auth>(),
+    customSessionClient(),
   ],
 });
 
