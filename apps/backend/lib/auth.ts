@@ -319,5 +319,8 @@ export const auth: any = betterAuth({
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:4000',
+    'https://sumas-admin.vercel.app',
+    'https://sumas-staffs.vercel.app',
+    'https://sumas-students.vercel.app',
   ],
 });
