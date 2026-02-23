@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/lib/auth-client';
-import { signOut } from '@/lib/auth-client';
-import Link from 'next/link';
-import { useState } from 'react';
-import { LifeBuoy, MessageSquare } from 'lucide-react';
-import { SupportFeedbackDialog } from '@/components/support-feedback-dialog';
+import { useAuth } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
+import Link from "next/link";
+import { useState } from "react";
+import { LifeBuoy, MessageSquare } from "lucide-react";
+import { SupportFeedbackDialog } from "@/components/support-feedback-dialog";
+import { ModeToggle } from "@workspace/ui/components/mode-toggle";
 
 export default function StudentNavbar() {
   const { data: session } = useAuth();
@@ -22,7 +23,9 @@ export default function StudentNavbar() {
             <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">A</span>
             </div>
-            <span className="font-bold text-lg text-gray-900">Student Portal</span>
+            <span className="font-bold text-lg text-gray-900">
+              Student Portal
+            </span>
           </Link>
 
           {/* Main Navigation */}
@@ -53,8 +56,9 @@ export default function StudentNavbar() {
             </Link>
           </div>
 
-          {/* User Menu */}
-          <div className="relative">
+          {/* User Menu & Theme */}
+          <div className="relative flex items-center gap-2">
+            <ModeToggle />
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -71,7 +75,7 @@ export default function StudentNavbar() {
               </span>
               <svg
                 className={`w-4 h-4 transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
+                  isDropdownOpen ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"

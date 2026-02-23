@@ -48,6 +48,12 @@ export default function CoursesSection() {
     | undefined;
   const studentId = userWithProfile?.studentProfile?.id;
 
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["studentCourses", studentId],
+    queryFn: () => graphqlClient.request(STUDENT_COURSES_QUERY, { studentId }),
+    enabled: !!studentId,
+  });
+
   if (session && !studentId) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
@@ -55,12 +61,6 @@ export default function CoursesSection() {
       </div>
     );
   }
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["studentCourses", studentId],
-    queryFn: () => graphqlClient.request(STUDENT_COURSES_QUERY, { studentId }),
-    enabled: !!studentId,
-  });
 
   if (isLoading) {
     return <div className="animate-pulse">Loading courses...</div>;
@@ -77,36 +77,38 @@ export default function CoursesSection() {
   const courses = data?.studentCourses || [];
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm">
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       <div className="border-b px-6 py-4">
-        <h2 className="text-xl font-bold text-gray-900">Registered Courses</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <h2 className="text-xl font-bold text-foreground">
+          Registered Courses
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Your current and past course enrollments
         </p>
       </div>
 
       {courses.length === 0 ? (
-        <div className="px-6 py-8 text-center text-gray-500">
+        <div className="px-6 py-8 text-center text-muted-foreground">
           <p>No courses found. Register for courses to see them here.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-t bg-gray-50">
+            <thead className="border-t bg-muted">
               <tr>
-                <th className="border-b px-6 py-3 text-left font-semibold text-gray-700">
+                <th className="border-b px-6 py-3 text-left font-semibold text-muted-foreground">
                   Course Code
                 </th>
-                <th className="border-b px-6 py-3 text-left font-semibold text-gray-700">
+                <th className="border-b px-6 py-3 text-left font-semibold text-muted-foreground">
                   Title
                 </th>
-                <th className="border-b px-6 py-3 text-center font-semibold text-gray-700">
+                <th className="border-b px-6 py-3 text-center font-semibold text-muted-foreground">
                   Credits
                 </th>
-                <th className="border-b px-6 py-3 text-center font-semibold text-gray-700">
+                <th className="border-b px-6 py-3 text-center font-semibold text-muted-foreground">
                   Grade
                 </th>
-                <th className="border-b px-6 py-3 text-center font-semibold text-gray-700">
+                <th className="border-b px-6 py-3 text-center font-semibold text-muted-foreground">
                   Instructor
                 </th>
               </tr>
@@ -115,15 +117,15 @@ export default function CoursesSection() {
               {courses.map((enrollment: any) => (
                 <tr
                   key={enrollment.id}
-                  className="border-t hover:bg-gray-50 transition-colors"
+                  className="border-t hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-6 py-4 font-medium text-gray-900">
+                  <td className="px-6 py-4 font-medium text-foreground">
                     {enrollment.course.code}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {enrollment.course.title}
                   </td>
-                  <td className="px-6 py-4 text-center text-gray-700">
+                  <td className="px-6 py-4 text-center text-muted-foreground">
                     {enrollment.course.credits}
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -132,10 +134,10 @@ export default function CoursesSection() {
                         {enrollment.grade.grade}
                       </span>
                     ) : (
-                      <span className="text-gray-500">-</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-center text-gray-700">
+                  <td className="px-6 py-4 text-center text-muted-foreground">
                     {enrollment.course.instructors[0]?.instructor?.user?.name ||
                       "TBA"}
                   </td>
@@ -149,7 +151,7 @@ export default function CoursesSection() {
       <div className="border-t px-6 py-4">
         <Button
           onClick={() => router.push("/dashboard/courses")}
-          className="text-sm bg-primary px-4 py-3 rounded-2xl text-white"
+          className="text-sm bg-primary px-4 py-3 rounded-2xl "
         >
           View All Courses <MoveRight />
         </Button>

@@ -187,7 +187,7 @@ export default function CoursesPage() {
   if (isLoading) {
     return (
       <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg border bg-white p-6 text-sm text-gray-600 shadow-sm">
+        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground shadow-sm">
           Loading courses...
         </div>
       </main>
@@ -207,8 +207,8 @@ export default function CoursesPage() {
   return (
     <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground">Courses</h1>
+        <p className="mt-2 text-muted-foreground">
           Browse your courses by level and semester.
         </p>
       </div>
@@ -220,7 +220,7 @@ export default function CoursesPage() {
         </Badge>
       </div>
 
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
         <Tabs value={activeLevel} onValueChange={setActiveLevel}>
           <TabsList className="mb-4 w-full justify-start overflow-x-auto">
             {levels.map((level) => (
@@ -245,11 +245,11 @@ export default function CoursesPage() {
                   {activeSemester === "FIRST" &&
                     Number(activeLevel) === level && (
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {semesterLabel("FIRST")}
                         </p>
                         {filteredCourses.length === 0 ? (
-                          <div className="rounded-md border bg-gray-50 p-4 text-sm text-gray-600">
+                          <div className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">
                             No courses found for {level}lv, First Semester.
                           </div>
                         ) : (
@@ -305,11 +305,11 @@ export default function CoursesPage() {
                   {activeSemester === "SECOND" &&
                     Number(activeLevel) === level && (
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {semesterLabel("SECOND")}
                         </p>
                         {filteredCourses.length === 0 ? (
-                          <div className="rounded-md border bg-gray-50 p-4 text-sm text-gray-600">
+                          <div className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">
                             No courses found for {level}lv, Second Semester.
                           </div>
                         ) : (

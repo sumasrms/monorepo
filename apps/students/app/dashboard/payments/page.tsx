@@ -177,9 +177,9 @@ function PaymentHistoryContent() {
       case "ABANDONED":
         return "bg-red-100 text-red-700";
       case "REFUNDED":
-        return "bg-gray-100 text-gray-700";
+        return "bg-muted text-muted-foreground";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -215,11 +215,11 @@ function PaymentHistoryContent() {
   return (
     <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="inline-flex items-center gap-2 text-3xl font-bold text-gray-900">
+        <h1 className="inline-flex items-center gap-2 text-3xl font-bold text-foreground">
           <CreditCard className="h-7 w-7" />
           Payment History
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-muted-foreground mt-2">
           Track all your result checking payments and transactions
         </p>
       </div>
@@ -249,20 +249,20 @@ function PaymentHistoryContent() {
       </div>
 
       {/* Payment Table */}
-      <div className="rounded-lg border bg-white shadow-sm">
+      <div className="rounded-lg border bg-card shadow-sm">
         <div className="border-b px-6 py-4">
-          <h2 className="inline-flex items-center gap-2 text-xl font-semibold text-gray-900">
+          <h2 className="inline-flex items-center gap-2 text-xl font-semibold text-card-foreground">
             <ReceiptText className="h-5 w-5" />
             All Transactions
           </h2>
         </div>
 
         {payments.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">
+          <div className="px-6 py-8 text-center text-muted-foreground">
             <p>No payments yet. Start by paying for your results.</p>
             <Link
               href="/dashboard/results"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               View Results <ArrowRight className="h-4 w-4" />
             </Link>
@@ -270,41 +270,41 @@ function PaymentHistoryContent() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-gray-50">
+              <TableHeader className="bg-muted">
                 <TableRow>
-                  <TableHead className="px-6 py-3 text-gray-700">
+                  <TableHead className="px-6 py-3 text-muted-foreground">
                     Date
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-gray-700">
+                  <TableHead className="px-6 py-3 text-muted-foreground">
                     Semester
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-gray-700">
+                  <TableHead className="px-6 py-3 text-muted-foreground">
                     Amount
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-gray-700">
+                  <TableHead className="px-6 py-3 text-muted-foreground">
                     Method
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-center text-gray-700">
+                  <TableHead className="px-6 py-3 text-center text-muted-foreground">
                     Status
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-center text-gray-700">
+                  <TableHead className="px-6 py-3 text-center text-muted-foreground">
                     Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((payment: PaymentHistoryItem) => (
-                  <TableRow key={payment.id} className="hover:bg-gray-50">
-                    <TableCell className="px-6 py-4 text-gray-700">
+                  <TableRow key={payment.id} className="hover:bg-muted/50">
+                    <TableCell className="px-6 py-4 text-muted-foreground">
                       {new Date(payment.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="px-6 py-4 font-medium text-gray-900">
+                    <TableCell className="px-6 py-4 font-medium text-foreground">
                       {payment.semester} Sem, {payment.session}
                     </TableCell>
-                    <TableCell className="px-6 py-4 font-semibold text-gray-900">
+                    <TableCell className="px-6 py-4 font-semibold text-foreground">
                       ₦{payment.amount.toLocaleString()}
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-gray-700">
+                    <TableCell className="px-6 py-4 text-muted-foreground">
                       {payment.paystackChannel || "Card"}
                     </TableCell>
                     <TableCell className="px-6 py-4 text-center">
@@ -321,11 +321,11 @@ function PaymentHistoryContent() {
                     <TableCell className="px-6 py-4 text-center">
                       {payment.status === "SUCCESS" && (
                         <div className="flex items-center justify-center gap-3">
-                          <button className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 hover:underline">
+                          <button className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
                             <ReceiptText className="h-4 w-4" />
                             Receipt
                           </button>
-                          <button className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 hover:underline">
+                          <button className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
                             <FileText className="h-4 w-4" />
                             Invoice
                           </button>
@@ -335,7 +335,7 @@ function PaymentHistoryContent() {
                         <button
                           onClick={() => handleRetryPayment(payment)}
                           disabled={retryPaymentMutation.isPending}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 hover:underline disabled:opacity-60"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline disabled:opacity-60"
                         >
                           <RefreshCcw className="h-4 w-4" />
                           {retryPaymentMutation.isPending
@@ -348,7 +348,7 @@ function PaymentHistoryContent() {
                         <button
                           onClick={() => handleRetryPayment(payment)}
                           disabled={retryPaymentMutation.isPending}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 hover:underline disabled:opacity-60"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:underline disabled:opacity-60"
                         >
                           <RefreshCcw className="h-4 w-4" />
                           {retryPaymentMutation.isPending
@@ -366,9 +366,9 @@ function PaymentHistoryContent() {
       </div>
 
       {/* Help Section */}
-      <div className="mt-8 rounded-lg border bg-gray-50 p-6">
-        <h3 className="text-lg font-semibold text-gray-900">Need Help?</h3>
-        <p className="mt-2 text-sm text-gray-600">
+      <div className="mt-8 rounded-lg border bg-muted p-6 text-foreground">
+        <h3 className="text-lg font-semibold">Need Help?</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
           If you have questions about your payments or need assistance, please
           contact the Student Services office or email support@university.edu
         </p>

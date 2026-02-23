@@ -297,10 +297,10 @@ function ResultsContent() {
   return (
     <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Examination Results
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-muted-foreground">
           View and unlock your semester examination results.
         </p>
       </div>
@@ -317,13 +317,13 @@ function ResultsContent() {
       )}
 
       {Object.keys(resultsByKey).length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center shadow-sm">
-          <p className="text-gray-600">
+        <div className="rounded-lg border bg-card p-8 text-center shadow-sm">
+          <p className="text-muted-foreground">
             No results available yet. Check back after results are published.
           </p>
           <Link
             href="/dashboard"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             Back to Dashboard <ArrowRight className="h-4 w-4" />
           </Link>
@@ -340,14 +340,14 @@ function ResultsContent() {
             return (
               <section
                 key={key}
-                className="rounded-lg border bg-white shadow-sm"
+                className="rounded-lg border bg-card shadow-sm"
               >
                 <div className="flex items-center justify-between border-b px-6 py-4">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <h2 className="text-xl font-semibold text-card-foreground">
                       {semData.semester} Semester, {semData.session}
                     </h2>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {semData.courses.length} course(s)
                     </p>
                   </div>
@@ -380,28 +380,28 @@ function ResultsContent() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="px-4 py-3 text-gray-700">
+                          <TableHead className="px-4 py-3 text-muted-foreground">
                             Course Code
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-gray-700">
+                          <TableHead className="px-4 py-3 text-muted-foreground">
                             Course Title
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             Credits
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             CA
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             Exam
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             Total
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             Grade
                           </TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                          <TableHead className="px-4 py-3 text-center text-muted-foreground">
                             Grade Point
                           </TableHead>
                         </TableRow>
@@ -409,22 +409,22 @@ function ResultsContent() {
                       <TableBody>
                         {semData.courses.map((course) => (
                           <TableRow key={course.id}>
-                            <TableCell className="px-4 py-3 font-medium text-gray-900">
+                            <TableCell className="px-4 py-3 font-medium text-foreground">
                               {course.course.code}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-gray-700">
+                            <TableCell className="px-4 py-3 text-muted-foreground">
                               {course.course.title}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-center text-gray-700">
+                            <TableCell className="px-4 py-3 text-center text-muted-foreground">
                               {course.course.credits}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-center text-gray-700">
+                            <TableCell className="px-4 py-3 text-center text-muted-foreground">
                               {course.ca ?? "-"}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-center text-gray-700">
+                            <TableCell className="px-4 py-3 text-center text-muted-foreground">
                               {course.exam ?? "-"}
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-center font-semibold text-gray-900">
+                            <TableCell className="px-4 py-3 text-center font-semibold text-foreground">
                               {course.score.toFixed(2)}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-center">
@@ -432,7 +432,7 @@ function ResultsContent() {
                                 {course.grade}
                               </Badge>
                             </TableCell>
-                            <TableCell className="px-4 py-3 text-center font-medium text-gray-900">
+                            <TableCell className="px-4 py-3 text-center font-medium text-foreground">
                               {course.gradePoint.toFixed(2)}
                             </TableCell>
                           </TableRow>
@@ -450,7 +450,7 @@ function ResultsContent() {
                     </div>
                   </div>
                 ) : (
-                  <div className="px-6 py-12 text-center text-gray-500">
+                  <div className="px-6 py-12 text-center text-muted-foreground">
                     <p>
                       Results are available. Pay ₦5,000 to unlock and view them.
                     </p>
