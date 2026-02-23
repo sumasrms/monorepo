@@ -99,12 +99,38 @@ export class StudentService {
           : undefined,
       };
 
-      return tx.student.create({
+      const newStudent = await tx.student.create({
         data: studentData,
         include: {
           user: true,
         },
       });
+
+      // Auto-enroll in compulsory department courses for this level
+      if (departmentId) {
+        const curriculumCourses = await tx.departmentCourse.findMany({
+          where: {
+            departmentId,
+            level,
+            courseType: 'COMPULSORY',
+          },
+        });
+
+        if (curriculumCourses.length > 0) {
+          const enrollmentsData = curriculumCourses.map((dc) => ({
+            studentId: newStudent.id,
+            courseId: dc.courseId,
+            status: 'ACTIVE' as const,
+          }));
+
+          await tx.enrollment.createMany({
+            data: enrollmentsData,
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      return newStudent;
     });
   }
 

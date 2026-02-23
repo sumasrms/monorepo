@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { Button } from "@workspace/ui/components/button";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, RefreshCw } from "lucide-react";
 import StudentBulkUpload from "./bulk-upload";
 import AddStudentDialog from "./add-student-dialog";
+import AutoEnrollDialog from "./auto-enroll-dialog";
 import { columns } from "./columns";
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "@/components/data-table";
@@ -33,6 +34,7 @@ interface GetStudentsQuery {
 export default function StudentsPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAutoEnrollOpen, setIsAutoEnrollOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["students"],
@@ -52,6 +54,10 @@ export default function StudentsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsAutoEnrollOpen(true)}>
+            <RefreshCw size={16} className="mr-2" />
+            Auto-Enroll Batch
+          </Button>
           <Button variant="outline" onClick={() => setIsAddOpen(true)}>
             <UserPlus size={16} className="mr-2" />
             Add Student
@@ -78,6 +84,11 @@ export default function StudentsPage() {
       <AddStudentDialog
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
+      />
+
+      <AutoEnrollDialog
+        isOpen={isAutoEnrollOpen}
+        onClose={() => setIsAutoEnrollOpen(false)}
       />
     </div>
   );
