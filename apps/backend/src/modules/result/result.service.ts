@@ -1107,7 +1107,7 @@ export class ResultService {
 
       return Promise.all(
         resultIds.map(async (id) => {
-          await tx.result.update({
+          const updatedResult = await tx.result.update({
             where: { id },
             data: {
               status: ResultStatus.DEAN_APPROVED,
@@ -1132,6 +1132,8 @@ export class ResultService {
             actorId: deanId,
             actorRole: 'DEAN',
           });
+
+          return updatedResult;
         }),
       );
     });
@@ -1151,7 +1153,7 @@ export class ResultService {
 
       return Promise.all(
         resultIds.map(async (id) => {
-          await tx.result.update({
+          const updatedResult = await tx.result.update({
             where: { id },
             data: {
               status: ResultStatus.REJECTED,
@@ -1176,6 +1178,8 @@ export class ResultService {
             actorId: deanId,
             actorRole: 'DEAN',
           });
+
+          return updatedResult;
         }),
       );
     });
@@ -1245,7 +1249,7 @@ export class ResultService {
 
       return Promise.all(
         resultIds.map(async (id) => {
-          await tx.result.update({
+          const updatedResult = await tx.result.update({
             where: { id },
             data: {
               status: ResultStatus.SENATE_APPROVED,
@@ -1270,6 +1274,8 @@ export class ResultService {
             actorId: senateId,
             actorRole: 'SENATE',
           });
+
+          return updatedResult;
         }),
       );
     });
@@ -1289,7 +1295,7 @@ export class ResultService {
 
       return Promise.all(
         resultIds.map(async (id) => {
-          await tx.result.update({
+          const updatedResult = await tx.result.update({
             where: { id },
             data: {
               status: ResultStatus.REJECTED,
@@ -1314,6 +1320,8 @@ export class ResultService {
             actorId: senateId,
             actorRole: 'SENATE',
           });
+
+          return updatedResult;
         }),
       );
     });
