@@ -19,8 +19,8 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (isPending) return;
 
-    const isPublic = PUBLIC_PATHS.some((path) =>
-      pathname === path || pathname.startsWith(`${path}/`),
+    const isPublic = PUBLIC_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
     );
 
     if (isPublic) {
@@ -32,8 +32,8 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const role = session.user.role?.toLowerCase();
-    if (role !== "student") {
+    const role = session.user.role;
+    if (role?.toLowerCase() !== "student") {
       window.location.href = "/unauthorized";
     }
   }, [session, isPending, pathname]);

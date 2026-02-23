@@ -37,7 +37,7 @@ export function useRequireAuth() {
     if (!isPending) {
       if (!session) {
         window.location.href = "/login";
-      } else if (session.user.role !== "student") {
+      } else if (session.user.role?.toLowerCase() !== "student") {
         // Cross-portal session detected
         window.location.href = "/unauthorized";
       }
