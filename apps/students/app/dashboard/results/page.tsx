@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { Suspense, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gql } from 'graphql-request';
-import { useAuth } from '@/lib/auth-client';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { graphqlClient } from '@/lib/graphql-client';
-import { Badge } from '@workspace/ui/components/badge';
-import { Button } from '@workspace/ui/components/button';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Suspense, useEffect, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { gql } from "graphql-request";
+import { useRequireAuth } from "@/lib/auth";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { graphqlClient } from "@/lib/graphql-client";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@workspace/ui/components/table';
+} from "@workspace/ui/components/table";
 
 type StudentResultItem = {
   id: string;
@@ -68,7 +68,7 @@ type InitiatePaymentVariables = {
   amount: number;
   semester: string;
   session: string;
-  paymentType: 'RESULT_ACCESS';
+  paymentType: "RESULT_ACCESS";
   description: string;
 };
 
@@ -161,7 +161,7 @@ const INITIATE_PAYMENT_MUTATION = gql`
 `;
 
 function ResultsContent() {
-  const { data: session } = useAuth();
+  const { session, isPending } = useRequireAuth();
   const userWithProfile = session?.user as
     | {
         studentProfile?: { id?: string };
@@ -171,25 +171,37 @@ function ResultsContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const reference = searchParams.get('reference');
+  const reference = searchParams.get("reference");
 
-  const { data: resultsData, isLoading: resultsLoading } = useQuery<ResultsQueryResponse>({
-    queryKey: ['results', studentId],
-    queryFn: () => graphqlClient.request<ResultsQueryResponse>(RESULTS_QUERY, { studentId }),
-    enabled: !!studentId,
-  });
+  const { data: resultsData, isLoading: resultsLoading } =
+    useQuery<ResultsQueryResponse>({
+      queryKey: ["results", studentId],
+      queryFn: () =>
+        graphqlClient.request<ResultsQueryResponse>(RESULTS_QUERY, {
+          studentId,
+        }),
+      enabled: !!studentId,
+    });
 
-  const { data: accessData, isLoading: accessLoading } = useQuery<ResultAccessQueryResponse>({
-    queryKey: ['myResultAccess', studentId],
-    queryFn: () => graphqlClient.request<ResultAccessQueryResponse>(RESULT_ACCESS_QUERY, { studentId }),
-    enabled: !!studentId,
-  });
+  const { data: accessData, isLoading: accessLoading } =
+    useQuery<ResultAccessQueryResponse>({
+      queryKey: ["myResultAccess", studentId],
+      queryFn: () =>
+        graphqlClient.request<ResultAccessQueryResponse>(RESULT_ACCESS_QUERY, {
+          studentId,
+        }),
+      enabled: !!studentId,
+    });
 
   const verifyMutation = useMutation<VerifyPaymentResponse, Error, string>({
     mutationFn: (ref: string) =>
-      graphqlClient.request<VerifyPaymentResponse>(VERIFY_PAYMENT_MUTATION, { reference: ref }),
+      graphqlClient.request<VerifyPaymentResponse>(VERIFY_PAYMENT_MUTATION, {
+        reference: ref,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myResultAccess', studentId] });
+      queryClient.invalidateQueries({
+        queryKey: ["myResultAccess", studentId],
+      });
     },
   });
 
@@ -199,13 +211,16 @@ function ResultsContent() {
     InitiatePaymentVariables
   >({
     mutationFn: (variables) =>
-      graphqlClient.request<InitiatePaymentResponse>(INITIATE_PAYMENT_MUTATION, { input: variables }),
+      graphqlClient.request<InitiatePaymentResponse>(
+        INITIATE_PAYMENT_MUTATION,
+        { input: variables },
+      ),
     onSuccess: (data) => {
       if (data.initiatePayment.authorizationUrl) {
         window.open(
           data.initiatePayment.authorizationUrl,
-          '_blank',
-          'noopener,noreferrer'
+          "_blank",
+          "noopener,noreferrer",
         );
       }
     },
@@ -225,38 +240,49 @@ function ResultsContent() {
       amount: 5000,
       semester,
       session,
-      paymentType: 'RESULT_ACCESS',
+      paymentType: "RESULT_ACCESS",
       description: `Result checking fee for ${semester} semester, ${session}`,
     });
   };
 
   const results = useMemo(
     () => resultsData?.studentResults ?? [],
-    [resultsData?.studentResults]
+    [resultsData?.studentResults],
   );
   const accessedResults = useMemo(
     () => accessData?.studentResultAccess ?? [],
-    [accessData?.studentResultAccess]
+    [accessData?.studentResultAccess],
   );
 
   const resultsByKey = useMemo(() => {
-    return results.reduce((acc: Record<string, SemesterGroup>, result: StudentResultItem) => {
-      const key = `${result.semester}|${result.session}`;
-      if (!acc[key]) {
-        acc[key] = {
-          semester: result.semester,
-          session: result.session,
-          courses: [],
-        };
-      }
-      acc[key].courses.push(result);
-      return acc;
-    }, {});
+    return results.reduce(
+      (acc: Record<string, SemesterGroup>, result: StudentResultItem) => {
+        const key = `${result.semester}|${result.session}`;
+        if (!acc[key]) {
+          acc[key] = {
+            semester: result.semester,
+            session: result.session,
+            courses: [],
+          };
+        }
+        acc[key].courses.push(result);
+        return acc;
+      },
+      {},
+    );
   }, [results]);
 
   const accessedKeys = new Set(
-    accessedResults.map((access) => `${access.semester}|${access.session}`)
+    accessedResults.map((access) => `${access.semester}|${access.session}`),
   );
+
+  if (isPending || resultsLoading || accessLoading) {
+    return (
+      <div className="py-8 text-center flex h-screen items-center justify-center">
+        Loading results...
+      </div>
+    );
+  }
 
   if (session && !studentId) {
     return (
@@ -268,14 +294,12 @@ function ResultsContent() {
     );
   }
 
-  if (resultsLoading || accessLoading) {
-    return <div className="py-8 text-center">Loading results...</div>;
-  }
-
   return (
     <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Examination Results</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Examination Results
+        </h1>
         <p className="mt-2 text-gray-600">
           View and unlock your semester examination results.
         </p>
@@ -310,11 +334,14 @@ function ResultsContent() {
             const key = `${semData.semester}|${semData.session}`;
             const isAccessed = accessedKeys.has(key);
             const accessInfo = accessedResults.find(
-              (access) => `${access.semester}|${access.session}` === key
+              (access) => `${access.semester}|${access.session}` === key,
             );
 
             return (
-              <section key={key} className="rounded-lg border bg-white shadow-sm">
+              <section
+                key={key}
+                className="rounded-lg border bg-white shadow-sm"
+              >
                 <div className="flex items-center justify-between border-b px-6 py-4">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">
@@ -330,16 +357,20 @@ function ResultsContent() {
                       Accessed
                       {accessInfo?.payment?.paystackPaidAt
                         ? ` • ${new Date(accessInfo.payment.paystackPaidAt).toLocaleDateString()}`
-                        : ''}
+                        : ""}
                     </Badge>
                   ) : (
                     <Button
-                      onClick={() => handlePayment(semData.semester, semData.session)}
+                      onClick={() =>
+                        handlePayment(semData.semester, semData.session)
+                      }
                       disabled={initiateMutation.isPending}
                       variant="outline"
                       className="font-medium"
                     >
-                      {initiateMutation.isPending ? 'Processing...' : 'Pay ₦5,000'}
+                      {initiateMutation.isPending
+                        ? "Processing..."
+                        : "Pay ₦5,000"}
                     </Button>
                   )}
                 </div>
@@ -349,14 +380,30 @@ function ResultsContent() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="px-4 py-3 text-gray-700">Course Code</TableHead>
-                          <TableHead className="px-4 py-3 text-gray-700">Course Title</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">Credits</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">CA</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">Exam</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">Total</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">Grade</TableHead>
-                          <TableHead className="px-4 py-3 text-center text-gray-700">Grade Point</TableHead>
+                          <TableHead className="px-4 py-3 text-gray-700">
+                            Course Code
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-gray-700">
+                            Course Title
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            Credits
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            CA
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            Exam
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            Total
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            Grade
+                          </TableHead>
+                          <TableHead className="px-4 py-3 text-center text-gray-700">
+                            Grade Point
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -372,10 +419,10 @@ function ResultsContent() {
                               {course.course.credits}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-center text-gray-700">
-                              {course.ca ?? '-'}
+                              {course.ca ?? "-"}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-center text-gray-700">
-                              {course.exam ?? '-'}
+                              {course.exam ?? "-"}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-center font-semibold text-gray-900">
                               {course.score.toFixed(2)}
@@ -404,9 +451,12 @@ function ResultsContent() {
                   </div>
                 ) : (
                   <div className="px-6 py-12 text-center text-gray-500">
-                    <p>Results are available. Pay ₦5,000 to unlock and view them.</p>
+                    <p>
+                      Results are available. Pay ₦5,000 to unlock and view them.
+                    </p>
                     <p className="mt-2 text-sm">
-                      Once you pay for this semester, all results in this semester are accessible for life.
+                      Once you pay for this semester, all results in this
+                      semester are accessible for life.
                     </p>
                   </div>
                 )}
@@ -421,7 +471,13 @@ function ResultsContent() {
 
 export default function ResultsPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <ResultsContent />
     </Suspense>
   );
