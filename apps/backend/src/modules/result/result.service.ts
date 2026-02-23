@@ -238,12 +238,40 @@ export class ResultService {
   }
 
   async getResultsByStudent(studentId: string) {
-    return this.prisma.result.findMany({
-      where: { studentId },
+    const results = await this.prisma.result.findMany({
+      where: {
+        studentId,
+        status: 'PUBLISHED',
+      },
       include: {
         course: true,
       },
       orderBy: [{ session: 'desc' }, { semester: 'asc' }],
+    });
+
+    const accessRecords = await this.prisma.resultAccess.findMany({
+      where: { studentId },
+    });
+
+    const accessMap = new Set(
+      accessRecords.map((r) => `${r.semester}|${r.session}`),
+    );
+
+    return results.map((result) => {
+      const hasAccess = accessMap.has(`${result.semester}|${result.session}`);
+
+      if (!hasAccess) {
+        return {
+          ...result,
+          score: 0,
+          grade: '***',
+          gradePoint: 0,
+          ca: null,
+          exam: null,
+        };
+      }
+
+      return result;
     });
   }
 
