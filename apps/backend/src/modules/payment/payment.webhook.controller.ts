@@ -29,17 +29,21 @@ export class PaymentWebhookController {
     @Req() req: any,
     @Res() res: any,
   ) {
-    // 1. Verify that the request is actually from Paystack
+    // 1. Verify that the request is actually from Paystack using the raw unparsed body
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
     const hash = crypto
       .createHmac('sha512', this.paystackSecretKey)
-      .update(JSON.stringify(req.body))
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      .update(req.rawBody || JSON.stringify(req.body))
       .digest('hex');
 
     if (hash !== signature) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       return res.status(HttpStatus.UNAUTHORIZED).send('Invalid signature');
     }
 
     // 2. Acknowledge receipt of the webhook immediately
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     res.status(HttpStatus.OK).send();
 
     // 3. Process the event

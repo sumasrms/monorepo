@@ -33,7 +33,8 @@ export class PaymentService {
   }
 
   async initiatePayment(input: InitiatePaymentInput) {
-    const { studentId, amount, semester, session, description } = input;
+    const { studentId, amount, semester, session, description, callbackUrl } =
+      input;
 
     // Validate student exists
     const student = await this.prisma.student.findUnique({
@@ -70,7 +71,7 @@ export class PaymentService {
       const reference = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
       // Prepare Paystack initialization payload
-      const paystackPayload = {
+      const paystackPayload: any = {
         amount: Math.round(amount * 100), // Paystack uses kobo (smallest unit)
         email: student.user.email,
         reference,
@@ -84,6 +85,10 @@ export class PaymentService {
           description: description || 'Result checking fee',
         },
       };
+
+      if (callbackUrl) {
+        paystackPayload.callback_url = callbackUrl;
+      }
 
       // Call Paystack API to initialize transaction
       const response = await firstValueFrom(

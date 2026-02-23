@@ -477,6 +477,7 @@ input HodRejectResultsInput {
 
 input InitiatePaymentInput {
   amount: Float!
+  callbackUrl: String
   description: String!
   paymentType: String!
   semester: String!

@@ -142,6 +142,11 @@ export class InitiatePaymentInput {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  callbackUrl?: string;
 }
 
 @ObjectType()

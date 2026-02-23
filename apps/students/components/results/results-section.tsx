@@ -33,6 +33,7 @@ type InitiatePaymentVariables = {
   session: string;
   paymentType: "RESULT_ACCESS";
   description: string;
+  callbackUrl?: string;
 };
 
 type InitiatePaymentResponse = {
@@ -158,6 +159,7 @@ export default function ResultsSection() {
       session,
       paymentType: "RESULT_ACCESS",
       description: `Result checking fee for ${semesterValue} semester, ${session}`,
+      callbackUrl: window.location.href, // Tell Paystack to redirect back here after payment
     });
   };
 

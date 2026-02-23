@@ -60,6 +60,16 @@ async function bootstrap() {
 
     const fastify = app.getHttpAdapter().getInstance();
 
+    // Register raw body plugin to securely verify webhooks
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    await fastify.register(require('fastify-raw-body'), {
+      field: 'rawBody',
+      global: false,
+      encoding: 'utf8',
+      runFirst: true,
+      routes: ['/webhooks/paystack'],
+    });
+
     // Register multipart plugin (required for request.parts())
     await fastify.register(fastifyMultipart, {
       limits: {
