@@ -227,13 +227,16 @@ input CreateStaffInput {
 input CreateStudentInput {
   admissionDate: DateTime!
   credentialKey: String
-  departmentId: String!
+  dateOfBirth: DateTime
+  departmentId: String
   email: String!
   gender: String!
   level: Int!
   matricNumber: String!
   name: String!
+  nationality: String = "Nigeria"
   programId: String
+  stateOfOrigin: String
 }
 
 type DashboardAnalytics {
@@ -945,13 +948,16 @@ input UpdateStaffInput {
 input UpdateStudentInput {
   admissionDate: DateTime
   credentialKey: String
+  dateOfBirth: DateTime
   departmentId: String
   email: String
   gender: String
   level: Int
   matricNumber: String
   name: String
+  nationality: String = "Nigeria"
   programId: String
+  stateOfOrigin: String
 }
 
 """The `Upload` scalar type represents a file upload."""

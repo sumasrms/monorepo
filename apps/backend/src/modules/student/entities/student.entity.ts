@@ -87,8 +87,10 @@ export class CreateStudentInput {
 
   @Field()
   @IsString()
-  @IsNotEmpty()
-  departmentId: string;
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  credentialKey?: string;
 
   @Field({ nullable: true })
   @IsString()
@@ -98,7 +100,23 @@ export class CreateStudentInput {
   @Field({ nullable: true })
   @IsString()
   @IsOptional()
-  credentialKey?: string;
+  departmentId?: string;
+
+  @Field({ nullable: true })
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  dateOfBirth?: Date;
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  nationality?: string = 'Nigeria';
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  stateOfOrigin?: string;
 }
 
 @InputType()

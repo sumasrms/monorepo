@@ -49,6 +49,9 @@ export class StudentService {
       departmentId,
       programId,
       credentialKey,
+      dateOfBirth,
+      nationality,
+      stateOfOrigin,
     } = input;
 
     // Check if matricNumber already exists
@@ -94,6 +97,9 @@ export class StudentService {
         admissionDate,
         level,
         programId,
+        dateOfBirth,
+        nationality,
+        stateOfOrigin,
         department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
@@ -154,6 +160,9 @@ export class StudentService {
         admissionDate: input.admissionDate,
         level: input.level,
         programId: input.programId,
+        dateOfBirth: input.dateOfBirth,
+        nationality: input.nationality,
+        stateOfOrigin: input.stateOfOrigin,
         department: input.departmentId
           ? { connect: { id: input.departmentId } }
           : undefined,

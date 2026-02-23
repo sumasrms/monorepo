@@ -234,6 +234,9 @@ input CreateStudentInput {
   matricNumber: String!
   name: String!
   programId: String
+  dateOfBirth: DateTime
+  nationality: String
+  stateOfOrigin: String
 }
 
 type DashboardAnalytics {
@@ -508,7 +511,9 @@ type Mutation {
   deleteNotification(id: String!): Boolean!
   deleteSetting(key: String!): SystemSettings!
   deleteUpload(publicId: String!, resourceType: String = "image"): Boolean!
-  enrollStudentsInCurriculumBatch(input: EnrollStudentsInput!): EnrollmentResult!
+  enrollStudentsInCurriculumBatch(
+    input: EnrollStudentsInput!
+  ): EnrollmentResult!
   hodApproveResults(input: HodApproveResultsInput!): [Result!]!
   hodRejectResults(input: HodRejectResultsInput!): [Result!]!
   initiatePayment(input: InitiatePaymentInput!): PaymentResponse!
@@ -536,7 +541,9 @@ type Mutation {
   updateFaculty(id: ID!, input: UpdateFacultyInput!): Faculty!
   updateGradeScale(id: ID!, input: UpdateGradeScaleInput!): GradeScale!
   updateMultipleSettings(inputs: [UpdateSettingInput!]!): [SystemSettings!]!
-  updateNotificationSettings(input: UpdateNotificationSettingsDto!): NotificationSettings!
+  updateNotificationSettings(
+    input: UpdateNotificationSettingsDto!
+  ): NotificationSettings!
   updateProfileImage(image: String!): User!
   updateResult(input: UpdateResultInput!): Result!
   updateSession(input: UpdateSessionInput!): AcademicSession!
@@ -597,7 +604,9 @@ type PaymentMetadata {
   displayName: String
   email: String
 
-  """Additional metadata"""
+  """
+  Additional metadata
+  """
   extra: String
 }
 
@@ -627,7 +636,11 @@ type PaystackData {
 
 type Query {
   auditLogs(filter: AuditLogFilterInput): [AuditLog!]!
-  canAccessResults(semester: Semester!, session: String!, studentId: ID!): Boolean!
+  canAccessResults(
+    semester: Semester!
+    session: String!
+    studentId: ID!
+  ): Boolean!
   course(id: ID!): Course!
   courseByCode(code: String!): Course!
   courses: [Course!]!
@@ -671,10 +684,30 @@ type Query {
   resultAuditsByDepartment: [ResultAudit!]!
   resultAuditsByFaculty(departmentId: ID): [ResultAudit!]!
   resultAuditsForSenate: [ResultAudit!]!
-  resultsByCourse(courseId: String!, semester: String!, session: String!): [Result!]!
-  resultsByDepartment(courseId: String, semester: String, session: String): [Result!]!
-  resultsByFaculty(courseId: String, departmentId: ID, semester: String, session: String): [Result!]!
-  resultsForSenate(courseId: String, departmentId: ID, facultyId: ID, semester: String, session: String, status: String): [Result!]!
+  resultsByCourse(
+    courseId: String!
+    semester: String!
+    session: String!
+  ): [Result!]!
+  resultsByDepartment(
+    courseId: String
+    semester: String
+    session: String
+  ): [Result!]!
+  resultsByFaculty(
+    courseId: String
+    departmentId: ID
+    semester: String
+    session: String
+  ): [Result!]!
+  resultsForSenate(
+    courseId: String
+    departmentId: ID
+    facultyId: ID
+    semester: String
+    session: String
+    status: String
+  ): [Result!]!
   staff(id: ID!): Staff!
   staffByDepartment(departmentId: String!): [Staff!]!
   staffs: [Staff!]!
@@ -687,7 +720,11 @@ type Query {
   students: [Student!]!
   universityAnalytics: DepartmentAnalytics!
   userFcmTokens: [FcmToken!]!
-  validateStudentCourseRegistration(courseId: String!, semester: String!, studentId: String!): ValidationResult!
+  validateStudentCourseRegistration(
+    courseId: String!
+    semester: String!
+    studentId: String!
+  ): ValidationResult!
 }
 
 type RecentActivity {
@@ -953,7 +990,9 @@ input UpdateStudentInput {
   programId: String
 }
 
-"""The `Upload` scalar type represents a file upload."""
+"""
+The `Upload` scalar type represents a file upload.
+"""
 scalar Upload
 
 type UploadResponse {

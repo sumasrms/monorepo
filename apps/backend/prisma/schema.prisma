@@ -7,45 +7,45 @@ datasource db {
 }
 
 model User {
-  id                String      @id
-  name              String
-  email             String      @unique
-  emailVerified     Boolean     @default(false)
-  image             String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  role              String?
-  banned            Boolean?    @default(false)
-  banReason         String?
-  banExpires        DateTime?
-  twoFactorEnabled  Boolean?    @default(false)
-  departmentId      String?
-  facultyId         String?
-  firstName         String?
-  gender            Gender?     @default(MALE)
-  isActive          Boolean     @default(true)
-  lastLogin         DateTime?
-  lastName          String?
-  phoneNumber       String?
-  staffId           String?     @unique
-  studentId         String?     @unique
-  surname           String?     @default("")
-  accounts          Account[]
-  deanApprovals     Approval[]  @relation("DeanApproval")
-  hodApprovals      Approval[]  @relation("HODApproval")
-  senateApprovals   Approval[]  @relation("SenateApproval")
-  managedDepartment Department? @relation("DepartmentHOD")
-  managedFaculty    Faculty?    @relation("FacultyDean")
-  passkeys          Passkey[]
-  sessions          Session[]
-  staffProfile      Staff?
-  studentProfile    Student?
-  twofactors        TwoFactor[]
-  department        Department? @relation("UserDepartment", fields: [departmentId], references: [id])
-  faculty           Faculty?    @relation("UserFaculty", fields: [facultyId], references: [id])
-  notifications     Notification[]
+  id                   String                @id
+  name                 String
+  email                String                @unique
+  emailVerified        Boolean               @default(false)
+  image                String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  role                 String?
+  banned               Boolean?              @default(false)
+  banReason            String?
+  banExpires           DateTime?
+  twoFactorEnabled     Boolean?              @default(false)
+  departmentId         String?
+  facultyId            String?
+  firstName            String?
+  gender               Gender?               @default(MALE)
+  isActive             Boolean               @default(true)
+  lastLogin            DateTime?
+  lastName             String?
+  phoneNumber          String?
+  staffId              String?               @unique
+  studentId            String?               @unique
+  surname              String?               @default("")
+  accounts             Account[]
+  deanApprovals        Approval[]            @relation("DeanApproval")
+  hodApprovals         Approval[]            @relation("HODApproval")
+  senateApprovals      Approval[]            @relation("SenateApproval")
+  managedDepartment    Department?           @relation("DepartmentHOD")
+  managedFaculty       Faculty?              @relation("FacultyDean")
+  passkeys             Passkey[]
+  sessions             Session[]
+  staffProfile         Staff?
+  studentProfile       Student?
+  twofactors           TwoFactor[]
+  department           Department?           @relation("UserDepartment", fields: [departmentId], references: [id])
+  faculty              Faculty?              @relation("UserFaculty", fields: [facultyId], references: [id])
+  notifications        Notification[]
   notificationSettings NotificationSettings?
-  fcmTokens         FcmToken[]
+  fcmTokens            FcmToken[]
 
   @@index([departmentId])
   @@index([facultyId])
@@ -205,7 +205,7 @@ model SystemSettings {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String
-  category  String   // general, session, appearance, notification, security
+  category  String // general, session, appearance, notification, security
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -321,8 +321,9 @@ model Result {
   student          Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   uploadedBy       Staff        @relation(fields: [uploadedById], references: [id])
 
-  editRequests     ResultEditRequest[]
-  audits           ResultAudit[]
+  editRequests ResultEditRequest[]
+  audits       ResultAudit[]
+
   @@unique([studentId, courseId, semester, session])
   @@map("result")
 }
@@ -405,6 +406,9 @@ model Student {
   userId         String         @unique
   matricNumber   String         @unique
   admissionDate  DateTime       @default(now())
+  dateOfBirth    DateTime?
+  nationality    String         @default("Nigeria")
+  stateOfOrigin  String?
   graduationDate DateTime?
   programId      String?
   level          Int            @default(100)
@@ -427,23 +431,23 @@ model Student {
 }
 
 model Staff {
-  id              String             @id @default(cuid())
-  userId          String             @unique
-  staffNumber     String             @unique
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  staffNumber       String             @unique
   institutionalRank String
-  designation     String?
-  dateOfBirth     DateTime
-  employmentDate  DateTime           @default(now())
-  employmentType  EmploymentType     @default(FULL_TIME)
-  departmentId    String?
-  qualifications  String?
-  specialization  String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  courses         CourseInstructor[]
-  uploadedResults Result[]
-  department      Department?        @relation(fields: [departmentId], references: [id])
-  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designation       String?
+  dateOfBirth       DateTime
+  employmentDate    DateTime           @default(now())
+  employmentType    EmploymentType     @default(FULL_TIME)
+  departmentId      String?
+  qualifications    String?
+  specialization    String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  courses           CourseInstructor[]
+  uploadedResults   Result[]
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([departmentId])
   @@index([userId])
@@ -494,38 +498,37 @@ model ResultAccess {
 }
 
 model Settings {
-  id                   String   @id @default(cuid())
-  key                  String   @unique
+  id                   String           @id @default(cuid())
+  key                  String           @unique
   currentSessionId     String?
   currentSession       AcademicSession? @relation(fields: [currentSessionId], references: [id])
   currentSemester      Semester
-  registrationOpen     Boolean  @default(false)
-  resultAccessFee      Float    @default(0)
-  lateRegistrationFee  Float    @default(0)
-  resultPublishEnabled Boolean  @default(false)
-  maintenanceMode      Boolean  @default(false)
+  registrationOpen     Boolean          @default(false)
+  resultAccessFee      Float            @default(0)
+  lateRegistrationFee  Float            @default(0)
+  resultPublishEnabled Boolean          @default(false)
+  maintenanceMode      Boolean          @default(false)
   maintenanceMessage   String?
   metadata             Json?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   @@map("settings")
 }
 
 model AcademicSession {
-  id        String   @id @default(cuid())
-  session   String   @unique
+  id        String     @id @default(cuid())
+  session   String     @unique
   startDate DateTime
   endDate   DateTime
-  isCurrent Boolean  @default(false)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isCurrent Boolean    @default(false)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   settings  Settings[]
 
   @@map("academic_session")
 }
-
 
 model DeviceCode {
   id              String    @id

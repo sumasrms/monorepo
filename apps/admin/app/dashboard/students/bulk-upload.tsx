@@ -34,6 +34,8 @@ const TEMPLATE_HEADERS = [
   "Program",
   "Email",
   "Credential Key",
+  "Nationality",
+  "State of Origin",
 ];
 
 export default function StudentBulkUpload({
@@ -176,6 +178,8 @@ export default function StudentBulkUpload({
         credentialKey: row["Credential Key"] || row["credentialKey"],
         programId: row["Program"] || row["programId"],
         departmentId: row["Department"] || row["departmentId"],
+        nationality: row["Nationality"] || row["nationality"],
+        stateOfOrigin: row["State of Origin"] || row["stateOfOrigin"],
         level: parseInt(row["Level"] || row["level"] || "100"),
       };
 
@@ -206,6 +210,10 @@ export default function StudentBulkUpload({
         mapped.gender = "MALE";
       }
 
+      if (!mapped.departmentId) {
+        validationErrors.push(`Row ${index + 1}: Department is missing`);
+      }
+
       return mapped;
     });
 
@@ -223,12 +231,13 @@ export default function StudentBulkUpload({
       name: d.name,
       matricNumber: d.matricNumber.toString(),
       admissionDate: d.admissionDate || new Date().toISOString(),
-      dateOfBirth: d.dateOfBirth,
       gender: d.gender,
       email: d.email,
       credentialKey: d.credentialKey,
       departmentId: d.departmentId,
       programId: d.programId,
+      nationality: d.nationality,
+      stateOfOrigin: d.stateOfOrigin,
       level: d.level,
     }));
     uploadMutation.mutate(sanitizedData);
