@@ -52,6 +52,12 @@ enum ApprovalStatus {
   REJECTED
 }
 
+input AssignCourseToStaffInput {
+  courseId: String!
+  isPrimary: Boolean! = false
+  staffId: String!
+}
+
 input AssignInstructorInput {
   courseId: String!
   instructorId: String!
@@ -496,6 +502,7 @@ scalar JSONObject
 type Mutation {
   activateSession(semester: Semester!, sessionId: ID!): AcademicSession!
   approveEditRequest(id: ID!): ResultEditRequest!
+  assignCourseToStaff(input: AssignCourseToStaffInput!): CourseInstructor!
   assignInstructor(input: AssignInstructorInput!): AssignInstructorResult!
   borrowCourse(input: BorrowCourseInput!): Boolean!
   bulkUploadStaff(inputs: [CreateStaffInput!]!): BulkUploadResponse!

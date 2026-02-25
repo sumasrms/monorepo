@@ -1,6 +1,7 @@
 "use client";
 
 import { useMyDepartmentalCourses } from "@/features/hod/hooks/useHodCourses";
+import { useAuth } from "@/lib/auth";
 import {
   BookOpen,
   Search,
@@ -10,25 +11,31 @@ import {
   Clock,
 } from "lucide-react";
 import { useState } from "react";
+import { AssignCourseDialog } from "./assign-course-dialog";
 import Link from "next/link";
+import { useMyDepartmentId } from "@/features/hod/hooks/useMyDepartmentId";
 
 export default function HodCoursesPage() {
+  const { session } = useAuth();
+  const { data: departmentId, isLoading: deptLoading } = useMyDepartmentId();
   const { data: offerings, isLoading } = useMyDepartmentalCourses();
   const [searchTerm, setSearchTerm] = useState("");
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
-  const filteredOfferings = offerings?.filter(
-    (o) =>
-      o.course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.course.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  if (isLoading) {
+  if (deptLoading || isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
         <Clock className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  const filteredOfferings = offerings?.filter(
+    (o) =>
+      o.course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.course.title.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div className="space-y-8">
@@ -39,10 +46,22 @@ export default function HodCoursesPage() {
             Manage and view all course offerings
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:shadow-lg transition-all">
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+          onClick={() => {
+            setSelectedCourseId(null);
+            setAssignDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Assign New Course
         </button>
+        <AssignCourseDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          courseId={selectedCourseId || ""}
+          departmentId={departmentId ?? ""}
+        />
       </div>
 
       {/* Search and Filter */}
@@ -120,13 +139,22 @@ export default function HodCoursesPage() {
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-6 flex gap-2">
                 <Link
                   href={`/hod/courses/${offering.course.id}`}
-                  className="block w-full py-2 text-center text-sm font-bold border border-primary/20 text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-all"
+                  className="block flex-1 py-2 text-center text-sm font-bold border border-primary/20 text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-all"
                 >
                   View Course Details
                 </Link>
+                <button
+                  className="block flex-1 py-2 text-center text-sm font-bold border border-secondary/20 text-secondary rounded-lg hover:bg-secondary hover:text-secondary-foreground transition-all"
+                  onClick={() => {
+                    setSelectedCourseId(offering.course.id);
+                    setAssignDialogOpen(true);
+                  }}
+                >
+                  Assign to Staff
+                </button>
               </div>
             </div>
           ))}

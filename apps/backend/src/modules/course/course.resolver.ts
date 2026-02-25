@@ -1,3 +1,4 @@
+import { CourseService } from './course.service';
 import {
   Resolver,
   Query,
@@ -8,7 +9,6 @@ import {
   ResolveField,
   Context,
 } from '@nestjs/graphql';
-import { CourseService } from './course.service';
 import {
   Course,
   CreateCourseInput,
@@ -21,6 +21,7 @@ import {
   EnrollmentResult,
   ValidationResult,
   AssignInstructorResult,
+  AssignCourseToStaffInput,
 } from './entities/course.entity';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/auth.guard';
@@ -35,6 +36,23 @@ import { Enrollment } from '../student/entities/enrollment.entity';
 @UseGuards(AuthGuard, RolesGuard)
 export class CourseResolver {
   constructor(private readonly courseService: CourseService) {}
+
+  @Mutation(() => CourseInstructor)
+  @Roles(roles.HOD)
+  async assignCourseToStaff(
+    @Args('input') input: AssignCourseToStaffInput,
+    @Context() context: { req: { user: { id: string } } },
+  ) {
+    // HOD userId from context
+    const hodUserId: string = context.req.user.id;
+    const { courseId, staffId, isPrimary } = input as AssignCourseToStaffInput;
+    return await this.courseService.assignCourseToStaff({
+      hodUserId,
+      courseId,
+      staffId,
+      isPrimary,
+    });
+  }
 
   @Mutation(() => Course)
   @Roles(roles.ADMIN)
@@ -108,7 +126,6 @@ export class CourseResolver {
       input.departmentId,
       input.level,
       input.semester,
-      input.session,
     );
   }
 
@@ -133,7 +150,12 @@ export class CourseResolver {
 
   @Query(() => [DepartmentCourse], { name: 'myDepartmentOfferings' })
   @Roles(roles.HOD)
-  async getMyOfferings(@Context() context: any) {
+  async getMyOfferings(
+    @Context()
+    context: {
+      req: { user: { staffProfile?: { departmentId?: string } } };
+    },
+  ) {
     const departmentId = context.req.user.staffProfile?.departmentId;
     if (!departmentId) {
       throw new Error('Department not found for this user');

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Semester } from '@prisma/client';
 import {
   CreateCourseInput,
   UpdateCourseInput,
@@ -15,6 +15,87 @@ import {
 @Injectable()
 export class CourseService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * HOD assigns a course in their department to a staff in their department
+   * Checks:
+   * - HOD is HOD of the department
+   * - Course belongs to department
+   * - Staff belongs to department
+   * - No duplicate assignment
+   * - Optionally, only one primary instructor per course
+   */
+  async assignCourseToStaff({
+    hodUserId,
+    courseId,
+    staffId,
+    isPrimary = false,
+  }: {
+    hodUserId: string;
+    courseId: string;
+    staffId: string;
+    isPrimary?: boolean;
+  }) {
+    // 1. Get HOD user and department
+    const hodUser = await this.prisma.user.findUnique({
+      where: { id: hodUserId },
+      include: { managedDepartment: true },
+    });
+    if (!hodUser || !hodUser.managedDepartment) {
+      throw new NotFoundException('You are not a Head of Department');
+    }
+    const departmentId = hodUser.managedDepartment.id;
+
+    // 2. Check course belongs to department
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    if (!course || course.departmentId !== departmentId) {
+      throw new NotFoundException('Course does not belong to your department');
+    }
+
+    // 3. Check staff belongs to department
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: staffId },
+    });
+    if (!staff || staff.departmentId !== departmentId) {
+      throw new NotFoundException('Staff does not belong to your department');
+    }
+
+    // 4. Prevent duplicate assignment
+    const existing = await this.prisma.courseInstructor.findUnique({
+      where: {
+        courseId_instructorId: { courseId, instructorId: staffId },
+      },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'This staff is already assigned to this course',
+      );
+    }
+
+    // 5. If isPrimary, unset other primary instructors for this course
+    if (isPrimary) {
+      await this.prisma.courseInstructor.updateMany({
+        where: { courseId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+    }
+
+    // 6. Assign course to staff
+    const assignment = await this.prisma.courseInstructor.create({
+      data: {
+        courseId,
+        instructorId: staffId,
+        isPrimary,
+      },
+      include: {
+        course: true,
+        instructor: true,
+      },
+    });
+    return assignment;
+  }
 
   async create(data: CreateCourseInput) {
     try {
@@ -270,7 +351,7 @@ export class CourseService {
     departmentId: string,
     level: number,
     semester: string,
-    session: string,
+    // _session: string, (removed unused argument)
   ) {
     // Check department exists
     const department = await this.prisma.department.findUnique({
@@ -299,7 +380,7 @@ export class CourseService {
       where: {
         departmentId,
         level,
-        semester: semester as any,
+        semester: semester as Semester,
       },
       include: {
         course: true,
@@ -316,7 +397,9 @@ export class CourseService {
     // Create enrollments for each student in each curriculum course
     let enrolledCount = 0;
     for (const student of students) {
-      for (const { course } of curriculumCourses) {
+      for (const curriculumCourse of curriculumCourses) {
+        const course = curriculumCourse.course;
+        if (!course) continue;
         try {
           await this.prisma.enrollment.upsert({
             where: {
@@ -333,7 +416,7 @@ export class CourseService {
             },
           });
           enrolledCount++;
-        } catch (error) {
+        } catch {
           // Skip if enrollment creation fails (e.g., already exists)
           continue;
         }
@@ -379,7 +462,7 @@ export class CourseService {
         courseId,
         departmentId: student.departmentId,
         level: student.level,
-        semester: semester as any,
+        semester: semester as Semester,
       },
     });
 

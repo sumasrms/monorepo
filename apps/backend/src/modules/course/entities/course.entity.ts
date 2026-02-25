@@ -1,3 +1,4 @@
+
 import {
   ObjectType,
   Field,
@@ -19,6 +20,23 @@ import { Semester, CourseType } from '@prisma/client';
 import { Department } from '../../department/entities/department.entity';
 import { Staff } from '../../staff/entities/staff.entity';
 import { Enrollment } from '../../student/entities/enrollment.entity';
+@InputType()
+export class AssignCourseToStaffInput {
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  courseId: string;
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  staffId: string;
+
+  @Field({ defaultValue: false })
+  @IsBoolean()
+  @IsOptional()
+  isPrimary?: boolean;
+}
 
 registerEnumType(Semester, { name: 'Semester' });
 registerEnumType(CourseType, { name: 'CourseType' });
