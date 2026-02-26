@@ -19,4 +19,7 @@ export class User {
 
   @Field({ nullable: true })
   image?: string;
+
+  @Field({ nullable: true })
+  role?: string;
 }

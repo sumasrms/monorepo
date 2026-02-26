@@ -648,6 +648,9 @@ type Query {
   departmentByCode(code: String!): Department!
   departmentOfferings(departmentId: String!): [DepartmentCourse!]!
   departments: [Department!]!
+  eligibleCourseInstructors(courseId: ID!): [Staff!]!
+  eligibleDeanStaff(facultyId: ID!): [Staff!]!
+  eligibleHodStaff(departmentId: ID!): [Staff!]!
   faculties: [Faculty!]!
   faculty(id: ID!): Faculty!
   facultyByCode(code: String!): Faculty!
@@ -993,7 +996,10 @@ type User {
   gender: Gender
   id: ID!
   image: String
+  managedDepartment: Department
+  managedFaculty: Faculty
   name: String!
+  role: String
 }
 
 type ValidationResult {

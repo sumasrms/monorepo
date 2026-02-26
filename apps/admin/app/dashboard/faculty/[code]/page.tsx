@@ -28,6 +28,7 @@ import {
   List,
   ChevronRight,
   UserCheck,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { StatCard } from "@/components/stat-card";
@@ -39,6 +40,15 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@workspace/ui/components/dialog";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 
 interface Stats {
   studentCount: number;
@@ -78,6 +88,13 @@ export default function FacultyDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    code: "",
+    description: "",
+    deanId: "",
+  });
 
   // Department Form State
   const [isDeptPopoverOpen, setIsDeptPopoverOpen] = useState(false);
@@ -124,17 +141,25 @@ export default function FacultyDetailPage() {
   });
 
   const updateFacultyMutation = useMutation({
-    mutationFn: (input: { id: string; deanId: string }) =>
+    mutationFn: (input: {
+      id: string;
+      input: { name?: string; code?: string; description?: string; deanId?: string };
+    }) =>
       graphqlClient.request(UPDATE_FACULTY, {
         id: input.id,
-        input: { deanId: input.deanId },
+        input: input.input,
       }),
-    onSuccess: () => {
-      toast.success("Dean assigned successfully");
+    onSuccess: (_, variables) => {
+      const onlyDean =
+        Object.keys(variables.input).length === 1 && "deanId" in variables.input;
+      toast.success(
+        onlyDean ? "Dean assigned successfully" : "Faculty updated successfully",
+      );
       queryClient.invalidateQueries({ queryKey: ["faculty", code] });
+      setIsEditOpen(false);
     },
     onError: (error: any) => {
-      toast.error("Failed to assign dean: " + error.message);
+      toast.error(error.message || "Failed to update faculty");
     },
   });
 
@@ -155,7 +180,35 @@ export default function FacultyDetailPage() {
 
   const handleAssignDean = async (userId: string) => {
     if (!faculty) return;
-    await updateFacultyMutation.mutateAsync({ id: faculty.id, deanId: userId });
+    await updateFacultyMutation.mutateAsync({
+      id: faculty.id,
+      input: { deanId: userId },
+    });
+  };
+
+  const openEditDialog = () => {
+    setEditFormData({
+      name: faculty!.name,
+      code: faculty!.code,
+      description: faculty!.description ?? "",
+      deanId: faculty!.deanId ?? "",
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!faculty) return;
+    const input: { name?: string; code?: string; description?: string; deanId?: string } = {};
+    if (editFormData.name !== faculty.name) input.name = editFormData.name;
+    if (editFormData.code !== faculty.code) input.code = editFormData.code;
+    if (editFormData.description !== (faculty.description ?? "")) input.description = editFormData.description || undefined;
+    if (editFormData.deanId !== (faculty.deanId ?? "")) input.deanId = editFormData.deanId || undefined;
+    if (Object.keys(input).length === 0) {
+      setIsEditOpen(false);
+      return;
+    }
+    updateFacultyMutation.mutate({ id: faculty.id, input });
   };
 
   if (isLoading) return <div className="p-8">Loading faculty details...</div>;
@@ -173,10 +226,20 @@ export default function FacultyDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={openEditDialog}
+          >
+            <Pencil size={16} />
+            Edit Faculty
+          </Button>
           <AssignRoleDialog
             title="Assign Dean"
-            description="Select a staff member to assign as the Dean of this faculty."
+            description="Select a staff member to assign as the Dean of this faculty. Only staff with the Dean role in this faculty are listed."
             roleName="Dean"
+            facultyId={faculty.id}
             currentAssignee={faculty.dean}
             onAssign={handleAssignDean}
             trigger={
@@ -286,6 +349,77 @@ export default function FacultyDetailPage() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Faculty</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">Code</Label>
+              <Input
+                id="edit-code"
+                value={editFormData.code}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, code: e.target.value })
+                }
+                placeholder="e.g. SCI"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <textarea
+                id="edit-description"
+                value={editFormData.description}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, description: e.target.value })
+                }
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-deanId">Dean ID (optional)</Label>
+              <Input
+                id="edit-deanId"
+                value={editFormData.deanId}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, deanId: e.target.value })
+                }
+                placeholder="User ID of dean"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateFacultyMutation.isPending}
+              >
+                {updateFacultyMutation.isPending ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dean Card if assigned - Optional visual improvement */}
       {faculty.dean && (

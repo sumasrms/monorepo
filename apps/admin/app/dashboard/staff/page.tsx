@@ -25,10 +25,12 @@ import {
   Mail,
   Award,
   Calendar,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@workspace/ui/lib/utils";
 import StaffBulkUpload from "./bulk-upload";
+import { EditStaffDialog } from "./edit-staff-dialog";
 
 interface Staff {
   id: string;
@@ -52,6 +54,7 @@ export default function StaffPage() {
   const queryClient = useQueryClient();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [editStaff, setEditStaff] = useState<Staff | null>(null);
   const [formState, setFormState] = useState<"idle" | "loading" | "success">(
     "idle",
   );
@@ -471,13 +474,27 @@ export default function StaffPage() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
                     <Users size={24} />
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs font-mono font-bold text-blue-500 block">
-                      {staff.staffNumber}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      {staff.institutionalRank}
-                    </span>
+                  <div className="text-right flex items-start gap-2">
+                    <div>
+                      <span className="text-xs font-mono font-bold text-blue-500 block">
+                        {staff.staffNumber}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        {staff.institutionalRank}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditStaff(staff);
+                      }}
+                      aria-label="Edit staff"
+                    >
+                      <Pencil size={14} />
+                    </Button>
                   </div>
                 </div>
 
@@ -531,6 +548,14 @@ export default function StaffPage() {
           }}
         />
       )}
+
+      <EditStaffDialog
+        staff={editStaff}
+        isOpen={!!editStaff}
+        onClose={() => setEditStaff(null)}
+        faculties={facultiesData?.faculties ?? []}
+        departments={deptsData?.departments ?? []}
+      />
     </div>
   );
 }

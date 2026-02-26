@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { graphqlClient } from "@/lib/graphql-client";
 import {
   GET_COURSE_BY_CODE,
+  GET_ELIGIBLE_COURSE_INSTRUCTORS,
   ASSIGN_INSTRUCTOR,
   BORROW_COURSE,
+  UPDATE_COURSE,
 } from "@/lib/graphql/course";
-import { GET_STAFFS } from "@/lib/graphql/staff";
 import { GET_DEPARTMENTS } from "@/lib/graphql/department";
 import {
   PopoverForm,
@@ -31,8 +32,18 @@ import {
   UserPlus,
   ArrowLeft,
   Share2,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@workspace/ui/components/dialog";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 
 export default function CourseDetailPage() {
   const { code } = useParams();
@@ -63,23 +74,43 @@ export default function CourseDetailPage() {
     level: 100,
   });
 
+  // Edit Course State
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    description: "",
+    credits: 3,
+    semester: "FIRST",
+    academicYear: "",
+    level: 100,
+    isActive: true,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["course", code],
     queryFn: () => graphqlClient.request<any>(GET_COURSE_BY_CODE, { code }),
     enabled: !!code,
   });
 
-  const { data: staffsData } = useQuery({
-    queryKey: ["staffs"],
-    queryFn: () => graphqlClient.request<any>(GET_STAFFS),
+  const course = data?.courseByCode;
+
+  const { data: eligibleInstructorsData, isLoading: isLoadingEligibleInstructors } = useQuery({
+    queryKey: ["eligibleCourseInstructors", course?.id],
+    queryFn: () =>
+      graphqlClient.request<{
+        eligibleCourseInstructors: {
+          id: string;
+          staffNumber: string;
+          user: { id: string; name: string; email?: string; image?: string | null };
+        }[];
+      }>(GET_ELIGIBLE_COURSE_INSTRUCTORS, { courseId: course!.id }),
+    enabled: !!course?.id,
   });
 
   const { data: deptsData } = useQuery({
     queryKey: ["departments"],
     queryFn: () => graphqlClient.request<any>(GET_DEPARTMENTS),
   });
-
-  const course = data?.courseByCode;
 
   const assignInstructorMutation = useMutation({
     mutationFn: (input: any) =>
@@ -92,6 +123,7 @@ export default function CourseDetailPage() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["course", code] });
+      queryClient.invalidateQueries({ queryKey: ["eligibleCourseInstructors"] });
       setTimeout(() => {
         setIsInstructorPopoverOpen(false);
         setInstructorFormState("idle");
@@ -123,6 +155,19 @@ export default function CourseDetailPage() {
     onError: () => setBorrowFormState("idle"),
   });
 
+  const updateCourseMutation = useMutation({
+    mutationFn: (input: { id: string; input: any }) =>
+      graphqlClient.request(UPDATE_COURSE, input),
+    onSuccess: () => {
+      toast.success("Course updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["course", code] });
+      setIsEditOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update course");
+    },
+  });
+
   const handleAssignInstructor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!course) return;
@@ -138,6 +183,38 @@ export default function CourseDetailPage() {
     if (!course) return;
     setBorrowFormState("loading");
     borrowCourseMutation.mutate({ ...borrowFormData, courseId: course.id });
+  };
+
+  const openEditDialog = () => {
+    if (!course) return;
+    setEditFormData({
+      title: course.title,
+      description: course.description ?? "",
+      credits: course.credits ?? 3,
+      semester: course.semester ?? "FIRST",
+      academicYear: course.academicYear ?? "",
+      level: course.level ?? 100,
+      isActive: course.isActive ?? true,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!course) return;
+    const input: any = {};
+    if (editFormData.title !== course.title) input.title = editFormData.title;
+    if (editFormData.description !== (course.description ?? "")) input.description = editFormData.description || undefined;
+    if (editFormData.credits !== (course.credits ?? 3)) input.credits = editFormData.credits;
+    if (editFormData.semester !== (course.semester ?? "FIRST")) input.semester = editFormData.semester;
+    if (editFormData.academicYear !== (course.academicYear ?? "")) input.academicYear = editFormData.academicYear || undefined;
+    if (editFormData.level !== (course.level ?? 100)) input.level = editFormData.level;
+    if (editFormData.isActive !== (course.isActive ?? true)) input.isActive = editFormData.isActive;
+    if (Object.keys(input).length === 0) {
+      setIsEditOpen(false);
+      return;
+    }
+    updateCourseMutation.mutate({ id: course.id, input });
   };
 
   if (isLoading) return <div className="p-8">Loading course details...</div>;
@@ -172,6 +249,15 @@ export default function CourseDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={openEditDialog}
+          >
+            <Pencil size={16} />
+            Edit Course
+          </Button>
           <PopoverForm
             title="Assign Instructor"
             open={isInstructorPopoverOpen}
@@ -196,14 +282,29 @@ export default function CourseDetailPage() {
                     }
                     className="w-full px-3 py-2 border rounded-md bg-transparent"
                     required
+                    disabled={isLoadingEligibleInstructors}
                   >
-                    <option value="">Choose Staff</option>
-                    {staffsData?.staffs.map((staff: any) => (
-                      <option key={staff.id} value={staff.id}>
-                        {staff.user.name} ({staff.staffNumber})
-                      </option>
-                    ))}
+                    <option value="">
+                      {isLoadingEligibleInstructors
+                        ? "Loading staff..."
+                        : "Choose staff in this department"}
+                    </option>
+                    {eligibleInstructorsData?.eligibleCourseInstructors?.map((staff) => {
+                      const alreadyAssigned =
+                        course?.instructors?.some(
+                          (ci: { instructorId: string }) => ci.instructorId === staff.id
+                        );
+                      return (
+                        <option key={staff.id} value={staff.id}>
+                          {staff.user.name} ({staff.staffNumber})
+                          {alreadyAssigned ? " — Already assigned to this course" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
+                  <p className="text-xs text-muted-foreground">
+                    Only staff in this course&apos;s department are listed.
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 py-2">
                   <input
@@ -351,6 +452,133 @@ export default function CourseDetailPage() {
           />
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Course</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editFormData.title}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, title: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <textarea
+                id="edit-description"
+                value={editFormData.description}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, description: e.target.value })
+                }
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-credits">Credits</Label>
+                <Input
+                  id="edit-credits"
+                  type="number"
+                  min={1}
+                  value={editFormData.credits}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      credits: parseInt(e.target.value) || 3,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-level">Level</Label>
+                <select
+                  id="edit-level"
+                  value={editFormData.level}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      level: parseInt(e.target.value),
+                    })
+                  }
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                >
+                  {[100, 200, 300, 400, 500, 600].map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-semester">Semester</Label>
+                <select
+                  id="edit-semester"
+                  value={editFormData.semester}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, semester: e.target.value })
+                  }
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                >
+                  <option value="FIRST">First</option>
+                  <option value="SECOND">Second</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-academicYear">Academic Year</Label>
+                <Input
+                  id="edit-academicYear"
+                  value={editFormData.academicYear}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      academicYear: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. 2024/2025"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-isActive"
+                checked={editFormData.isActive}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, isActive: e.target.checked })
+                }
+                className="rounded border-input"
+              />
+              <Label htmlFor="edit-isActive">Active</Label>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateCourseMutation.isPending}
+              >
+                {updateCourseMutation.isPending ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Details */}

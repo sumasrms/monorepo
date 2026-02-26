@@ -29,6 +29,7 @@ import { RolesGuard } from '../../common/auth/roles.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { roles } from 'lib/permissions';
 import { Department } from '../department/entities/department.entity';
+import { Staff } from '../staff/entities/staff.entity';
 import { Enrollment } from '../student/entities/enrollment.entity';
 // import { Department } from '../../department/entities/department.entity';
 
@@ -73,6 +74,14 @@ export class CourseResolver {
   @Query(() => Course, { name: 'courseByCode' })
   findByCode(@Args('code') code: string) {
     return this.courseService.findByCode(code);
+  }
+
+  @Query(() => [Staff], { name: 'eligibleCourseInstructors' })
+  @Roles(roles.ADMIN)
+  eligibleCourseInstructors(
+    @Args('courseId', { type: () => ID }) courseId: string,
+  ) {
+    return this.courseService.getEligibleCourseInstructors(courseId);
   }
 
   @Mutation(() => Course)

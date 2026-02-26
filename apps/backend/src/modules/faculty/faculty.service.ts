@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,15 +10,18 @@ import {
   CreateFacultyInput,
   UpdateFacultyInput,
 } from './entities/faculty.entity';
+import { normalizeCode } from '../../common/utils/code.util';
+import { roles } from 'lib/permissions';
 
 @Injectable()
 export class FacultyService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateFacultyInput) {
+    const normalized = { ...data, code: normalizeCode(data.code) };
     try {
       return await this.prisma.faculty.create({
-        data,
+        data: normalized,
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -46,6 +50,7 @@ export class FacultyService {
       where: { id },
       include: {
         departments: true,
+        dean: true,
       },
     });
 
@@ -57,13 +62,55 @@ export class FacultyService {
   }
 
   async update(id: string, data: UpdateFacultyInput) {
-    await this.findOne(id);
+    const faculty = await this.findOne(id);
+
+    if (data.deanId != null && data.deanId !== '') {
+      const user = await this.prisma.user.findUnique({
+        where: { id: data.deanId },
+        select: { id: true, role: true, name: true },
+      });
+      if (!user) {
+        throw new NotFoundException(
+          'Selected user not found. Please select a staff member from the list.',
+        );
+      }
+      if (user.role !== roles.DEAN) {
+        throw new BadRequestException(
+          `Only users with the Dean role can be assigned as Dean of Faculty. "${user.name}" does not have the Dean role. Please assign the Dean role first (e.g. via Staff profile), or choose another staff member who has the Dean role.`,
+        );
+      }
+      const staffInFaculty = await this.prisma.staff.findFirst({
+        where: { userId: data.deanId, department: { facultyId: id } },
+        select: { id: true },
+      });
+      if (!staffInFaculty) {
+        throw new BadRequestException(
+          'The selected user must be a staff member of this faculty. Only staff who belong to a department in this faculty can be assigned as Dean.',
+        );
+      }
+      if (data.deanId !== faculty.deanId) {
+        const existingDean = await this.prisma.faculty.findFirst({
+          where: { deanId: data.deanId, id: { not: id } },
+          select: { id: true, name: true, code: true },
+        });
+        if (existingDean) {
+          throw new ConflictException(
+            `This user is already the Dean of ${existingDean.name} (${existingDean.code}). Please choose another staff member, or remove them from that faculty first.`,
+          );
+        }
+      }
+    }
+
+    const payload = { ...data };
+    if (payload.code != null) payload.code = normalizeCode(payload.code);
 
     try {
-      return await this.prisma.faculty.update({
+      const updated = await this.prisma.faculty.update({
         where: { id },
-        data,
+        data: payload,
+        include: { dean: true, departments: true },
       });
+      return updated;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -92,12 +139,17 @@ export class FacultyService {
   }
 
   async findByCode(code: string) {
-    const faculty = await this.prisma.faculty.findUnique({
-      where: { code },
-      include: {
-        departments: true,
-      },
+    const normalizedCode = normalizeCode(code);
+    let faculty = await this.prisma.faculty.findUnique({
+      where: { code: normalizedCode },
+      include: { departments: true, dean: true },
     });
+    if (!faculty && code !== normalizedCode) {
+      faculty = await this.prisma.faculty.findUnique({
+        where: { code },
+        include: { departments: true, dean: true },
+      });
+    }
 
     if (!faculty) {
       throw new NotFoundException(`Faculty with code ${code} not found`);
@@ -135,6 +187,30 @@ export class FacultyService {
     return this.prisma.department.findMany({
       where: { facultyId },
     });
+  }
+
+  async getDeanUser(deanId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: deanId },
+    });
+  }
+
+  /**
+   * Staff with Dean role who belong to this faculty (via their department).
+   * Used for Dean assignment: only staff in a department of this faculty and with Dean role can be assigned.
+   */
+  async getEligibleDeanStaff(facultyId: string) {
+    const staffs = await this.prisma.staff.findMany({
+      where: { department: { facultyId } },
+      include: {
+        user: {
+          include: {
+            managedFaculty: { select: { id: true, name: true, code: true } },
+          },
+        },
+      },
+    });
+    return staffs.filter((s) => s.user.role === roles.DEAN);
   }
 
   async getAnalytics(facultyId: string) {

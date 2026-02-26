@@ -76,3 +76,24 @@ export const REMOVE_DEPARTMENT = gql`
     }
   }
 `;
+
+export const GET_ELIGIBLE_HOD_STAFF = gql`
+  query GetEligibleHodStaff($departmentId: ID!) {
+    eligibleHodStaff(departmentId: $departmentId) {
+      id
+      staffNumber
+      user {
+        id
+        name
+        email
+        image
+        role
+        managedDepartment {
+          id
+          name
+          code
+        }
+      }
+    }
+  }
+`;

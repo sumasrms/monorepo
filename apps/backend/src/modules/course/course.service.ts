@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import {
   AssignInstructorInput,
   BorrowCourseInput,
 } from './entities/course.entity';
+import { normalizeCode } from '../../common/utils/code.util';
 
 @Injectable()
 export class CourseService {
@@ -98,9 +100,10 @@ export class CourseService {
   }
 
   async create(data: CreateCourseInput) {
+    const normalized = { ...data, code: normalizeCode(data.code) };
     try {
       return await this.prisma.course.create({
-        data,
+        data: normalized,
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -154,12 +157,17 @@ export class CourseService {
   }
 
   async findByCode(code: string) {
-    const course = await this.prisma.course.findUnique({
-      where: { code },
-      include: {
-        department: true,
-      },
+    const normalizedCode = normalizeCode(code);
+    let course = await this.prisma.course.findUnique({
+      where: { code: normalizedCode },
+      include: { department: true },
     });
+    if (!course && code !== normalizedCode) {
+      course = await this.prisma.course.findUnique({
+        where: { code },
+        include: { department: true },
+      });
+    }
 
     if (!course) {
       throw new NotFoundException(`Course with code ${code} not found`);
@@ -214,6 +222,12 @@ export class CourseService {
       where: { id: instructorId },
     });
     if (!instructor) throw new NotFoundException('Instructor not found');
+
+    if (instructor.departmentId !== course.departmentId) {
+      throw new BadRequestException(
+        'The selected staff member must belong to the same department as the course. Only staff in this course\'s department can be assigned as instructors.',
+      );
+    }
 
     // If setting as primary, unset other primary instructors for this course
     if (isPrimary) {
@@ -296,6 +310,22 @@ export class CourseService {
           },
         },
       },
+    });
+  }
+
+  /**
+   * Staff in the same department as the course. Used for admin course-instructor
+   * assignment so only department staff can be assigned.
+   */
+  async getEligibleCourseInstructors(courseId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { departmentId: true },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+    return this.prisma.staff.findMany({
+      where: { departmentId: course.departmentId },
+      include: { user: true },
     });
   }
 

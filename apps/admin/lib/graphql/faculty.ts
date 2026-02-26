@@ -91,3 +91,24 @@ export const REMOVE_FACULTY = gql`
     }
   }
 `;
+
+export const GET_ELIGIBLE_DEAN_STAFF = gql`
+  query GetEligibleDeanStaff($facultyId: ID!) {
+    eligibleDeanStaff(facultyId: $facultyId) {
+      id
+      staffNumber
+      user {
+        id
+        name
+        email
+        image
+        role
+        managedFaculty {
+          id
+          name
+          code
+        }
+      }
+    }
+  }
+`;

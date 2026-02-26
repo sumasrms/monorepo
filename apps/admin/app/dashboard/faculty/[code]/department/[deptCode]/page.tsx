@@ -18,6 +18,7 @@ import {
   School,
   FileText,
   UserCheck,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { StatCard } from "@/components/stat-card";
@@ -30,6 +31,15 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@workspace/ui/components/dialog";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 
 interface Stats {
   studentCount: number;
@@ -66,6 +76,13 @@ export default function DepartmentDetailPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "curriculum">(
     "overview",
   );
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    code: "",
+    description: "",
+    numberOfYears: 4,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["department", deptCode],
@@ -82,17 +99,26 @@ export default function DepartmentDetailPage() {
   const department = data?.departmentByCode;
 
   const updateDepartmentMutation = useMutation({
-    mutationFn: (input: { id: string; hodId: string }) =>
-      graphqlClient.request(UPDATE_DEPARTMENT, {
-        id: input.id,
-        input: { hodId: input.hodId },
-      }),
-    onSuccess: () => {
-      toast.success("HOD assigned successfully");
+    mutationFn: (input: { id: string; input: any }) =>
+      graphqlClient.request(UPDATE_DEPARTMENT, input),
+    onSuccess: (_, variables) => {
+      const onlyHod =
+        Object.keys(variables.input).length === 1 && "hodId" in variables.input;
+      toast.success(
+        onlyHod
+          ? "Head of Department assigned and saved. The HOD will appear below."
+          : "Department updated successfully.",
+      );
       queryClient.invalidateQueries({ queryKey: ["department", deptCode] });
+      queryClient.invalidateQueries({ queryKey: ["faculty", facultyCode] });
+      setIsEditOpen(false);
     },
     onError: (error: any) => {
-      toast.error("Failed to assign HOD: " + error.message);
+      const message =
+        error?.response?.errors?.[0]?.message ||
+        error?.message ||
+        "Failed to assign Head of Department.";
+      toast.error(message);
     },
   });
 
@@ -100,8 +126,34 @@ export default function DepartmentDetailPage() {
     if (!department) return;
     await updateDepartmentMutation.mutateAsync({
       id: department.id,
-      hodId: userId,
+      input: { hodId: userId },
     });
+  };
+
+  const openEditDialog = () => {
+    if (!department) return;
+    setEditFormData({
+      name: department.name,
+      code: department.code,
+      description: department.description ?? "",
+      numberOfYears: department.numberOfYears ?? 4,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!department) return;
+    const input: any = {};
+    if (editFormData.name !== department.name) input.name = editFormData.name;
+    if (editFormData.code !== department.code) input.code = editFormData.code;
+    if (editFormData.description !== (department.description ?? "")) input.description = editFormData.description || undefined;
+    if (editFormData.numberOfYears !== (department.numberOfYears ?? 4)) input.numberOfYears = editFormData.numberOfYears;
+    if (Object.keys(input).length === 0) {
+      setIsEditOpen(false);
+      return;
+    }
+    updateDepartmentMutation.mutate({ id: department.id, input });
   };
 
   if (isLoading)
@@ -137,10 +189,20 @@ export default function DepartmentDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={openEditDialog}
+          >
+            <Pencil size={16} />
+            Edit Department
+          </Button>
           <AssignRoleDialog
             title="Assign Head of Department"
-            description="Select a staff member to assign as the HOD of this department."
+            description="Only staff with the HOD role who belong to this department are listed. Assign the HOD role to a staff member first if needed, then assign them here. The assignment is saved immediately."
             roleName="HOD"
+            departmentId={department.id}
             currentAssignee={department.hod}
             onAssign={handleAssignHod}
             trigger={
@@ -152,6 +214,81 @@ export default function DepartmentDetailPage() {
           />
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Department</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-dept-name">Name</Label>
+              <Input
+                id="edit-dept-name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-dept-code">Code</Label>
+              <Input
+                id="edit-dept-code"
+                value={editFormData.code}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, code: e.target.value })
+                }
+                placeholder="e.g. CSC"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-dept-description">Description</Label>
+              <textarea
+                id="edit-dept-description"
+                value={editFormData.description}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, description: e.target.value })
+                }
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-dept-years">Years of Study</Label>
+              <Input
+                id="edit-dept-years"
+                type="number"
+                min={1}
+                value={editFormData.numberOfYears}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    numberOfYears: parseInt(e.target.value) || 4,
+                  })
+                }
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateDepartmentMutation.isPending}
+              >
+                {updateDepartmentMutation.isPending ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards - Always Visible */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -224,23 +361,26 @@ export default function DepartmentDetailPage() {
                   {department.numberOfYears} Years
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
+              <div className="flex justify-between items-start gap-4 text-sm">
+                <span className="text-muted-foreground shrink-0">
                   Head of Department
                 </span>
-                <span className="font-bold">
+                <span className="font-bold text-right">
                   {department.hod ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-end">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={department.hod.image} />
                         <AvatarFallback>
                           {department.hod.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      {department.hod.name}
+                      <span>{department.hod.name}</span>
                     </div>
                   ) : (
-                    "Not Assigned"
+                    <span className="text-muted-foreground font-normal">
+                      Not Assigned — use &quot;Assign HOD&quot; above to assign a
+                      staff member with the HOD role.
+                    </span>
                   )}
                 </span>
               </div>

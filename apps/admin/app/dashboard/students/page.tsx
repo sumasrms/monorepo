@@ -1,31 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@workspace/ui/components/button";
-import { Plus, UserPlus, RefreshCw } from "lucide-react";
+import { Plus, UserPlus, RefreshCw, Pencil } from "lucide-react";
 import StudentBulkUpload from "./bulk-upload";
 import AddStudentDialog from "./add-student-dialog";
 import AutoEnrollDialog from "./auto-enroll-dialog";
-import { columns } from "./columns";
+import { EditStudentDialog } from "./edit-student-dialog";
+import { columns, type Student } from "./columns";
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "@/components/data-table";
 import { graphqlClient } from "@/lib/graphql-client";
 import { GET_STUDENTS } from "@/lib/graphql/students";
-
-interface Student {
-  id: string;
-  matricNumber: string;
-  admissionDate: string;
-  level: number;
-  user: {
-    name: string;
-    email: string;
-    image: string | null;
-  };
-  department: {
-    name: string;
-  };
-}
 
 interface GetStudentsQuery {
   students: Student[];
@@ -35,6 +22,29 @@ export default function StudentsPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAutoEnrollOpen, setIsAutoEnrollOpen] = useState(false);
+  const [editStudentId, setEditStudentId] = useState<string | null>(null);
+
+  const columnsWithActions = useMemo<ColumnDef<Student>[]>(
+    () => [
+      ...columns,
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1"
+            onClick={() => setEditStudentId(row.original.id)}
+          >
+            <Pencil size={14} />
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [],
+  );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["students"],
@@ -70,7 +80,7 @@ export default function StudentsPage() {
       </div>
 
       <DataTable
-        columns={columns}
+        columns={columnsWithActions}
         data={data?.students || []}
         searchKey="name"
       />
@@ -89,6 +99,12 @@ export default function StudentsPage() {
       <AutoEnrollDialog
         isOpen={isAutoEnrollOpen}
         onClose={() => setIsAutoEnrollOpen(false)}
+      />
+
+      <EditStudentDialog
+        studentId={editStudentId}
+        isOpen={!!editStudentId}
+        onClose={() => setEditStudentId(null)}
       />
     </div>
   );

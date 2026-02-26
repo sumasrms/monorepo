@@ -116,15 +116,26 @@ export class StaffService {
     const staff = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
-      if (input.name || input.gender || input.facultyId || input.departmentId) {
+      const userUpdateData: Prisma.UserUpdateInput = {};
+      if (input.name != null) userUpdateData.name = input.name;
+      if (input.gender != null) userUpdateData.gender = input.gender;
+      if (input.facultyId !== undefined) {
+        userUpdateData.faculty = input.facultyId
+          ? { connect: { id: input.facultyId } }
+          : { disconnect: true };
+      }
+      if (input.departmentId !== undefined) {
+        userUpdateData.department = input.departmentId
+          ? { connect: { id: input.departmentId } }
+          : { disconnect: true };
+      }
+      if (input.designation != null) {
+        userUpdateData.role = this.mapDesignationToRole(input.designation);
+      }
+      if (Object.keys(userUpdateData).length > 0) {
         await tx.user.update({
           where: { id: staff.userId },
-          data: {
-            name: input.name,
-            gender: input.gender,
-            facultyId: input.facultyId,
-            departmentId: input.departmentId,
-          },
+          data: userUpdateData,
         });
       }
 

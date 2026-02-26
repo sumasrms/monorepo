@@ -17,6 +17,8 @@ import {
   UpdateFacultyInput,
 } from './entities/faculty.entity';
 import { Department } from '../department/entities/department.entity';
+import { Staff } from '../staff/entities/staff.entity';
+import { User } from '../../common/entities/user.entity';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/auth.guard';
 import { RolesGuard } from '../../common/auth/roles.guard';
@@ -64,6 +66,14 @@ export class FacultyResolver {
     return this.facultyService.findByCode(code);
   }
 
+  @Query(() => [Staff], { name: 'eligibleDeanStaff' })
+  @Roles(roles.ADMIN)
+  eligibleDeanStaff(
+    @Args('facultyId', { type: () => ID }) facultyId: string,
+  ) {
+    return this.facultyService.getEligibleDeanStaff(facultyId);
+  }
+
   @Query(() => FacultyStats, { name: 'myFacultyStats' })
   @Roles(roles.DEAN)
   async getMyFacultyStats(@Context() context: any) {
@@ -106,5 +116,17 @@ export class FacultyResolver {
   async departments(@Parent() faculty: Faculty) {
     if (faculty.departments) return faculty.departments;
     return await this.facultyService.getDepartments(faculty.id);
+  }
+
+  @ResolveField(() => User, { nullable: true })
+  async dean(@Parent() faculty: Faculty) {
+    if (faculty.dean) return faculty.dean;
+    if (!faculty.deanId) return null;
+    const user = await this.facultyService.getDeanUser(faculty.deanId);
+    if (!user) return null;
+    return {
+      ...user,
+      role: user.role ?? undefined,
+    };
   }
 }

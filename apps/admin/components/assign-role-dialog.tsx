@@ -29,17 +29,24 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { graphqlClient } from "@/lib/graphql-client";
 import { GET_STAFFS } from "@/lib/graphql/staff";
+import { GET_ELIGIBLE_HOD_STAFF } from "@/lib/graphql/department";
+import { GET_ELIGIBLE_DEAN_STAFF } from "@/lib/graphql/faculty";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import { Badge } from "@workspace/ui/components/badge";
 import { toast } from "sonner";
 
 interface AssignRoleDialogProps {
   title: string;
   description: string;
   roleName: string; // e.g., "Dean" or "HOD"
+  /** When assigning HOD, pass the department id to list only HOD-role staff in this department with Assigned/Available tags */
+  departmentId?: string | null;
+  /** When assigning Dean, pass the faculty id to list only Dean-role staff in this faculty with Assigned/Available tags */
+  facultyId?: string | null;
   currentAssignee?: {
     id: string;
     name: string;
@@ -51,10 +58,21 @@ interface AssignRoleDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+type StaffOption = {
+  value: string;
+  label: string;
+  email: string;
+  image?: string | null;
+  staffNumber?: string;
+  tag?: "Available" | string; // "Assigned to {name}" or "Available"
+};
+
 export function AssignRoleDialog({
   title,
   description,
   roleName,
+  departmentId,
+  facultyId,
   currentAssignee,
   trigger,
   onAssign,
@@ -66,16 +84,84 @@ export function AssignRoleDialog({
   const [isAssigning, setIsAssigning] = React.useState(false);
   const [popoverOpen, setPopoverOpen] = React.useState(false);
 
-  // Controlled vs Uncontrolled open state
   const isDialogOpen = isOpen !== undefined ? isOpen : open;
   const setDialogOpen = onOpenChange || setOpen;
 
-  const { data: staffData, isLoading } = useQuery({
+  const useHodEligible = roleName === "HOD" && !!departmentId;
+  const useDeanEligible = roleName === "Dean" && !!facultyId;
+  const useEligibleList = useHodEligible || useDeanEligible;
+
+  const { data: staffData, isLoading: isLoadingStaffs } = useQuery({
     queryKey: ["staffs"],
-    queryFn: () => graphqlClient.request<{ staffs: any[] }>(GET_STAFFS),
+    queryFn: () => graphqlClient.request<{ staffs: { user: { id: string; name: string; email: string; image?: string | null }; staffNumber: string }[] }>(GET_STAFFS),
+    enabled: !useEligibleList,
   });
 
-  const staffs = React.useMemo(() => {
+  const { data: eligibleHodData, isLoading: isLoadingHod } = useQuery({
+    queryKey: ["eligibleHodStaff", departmentId],
+    queryFn: () =>
+      graphqlClient.request<{
+        eligibleHodStaff: {
+          id: string;
+          staffNumber: string;
+          user: {
+            id: string;
+            name: string;
+            email: string;
+            image?: string | null;
+            role?: string;
+            managedDepartment?: { id: string; name: string; code: string } | null;
+          };
+        }[];
+      }>(GET_ELIGIBLE_HOD_STAFF, { departmentId: departmentId! }),
+    enabled: useHodEligible && !!departmentId,
+  });
+
+  const { data: eligibleDeanData, isLoading: isLoadingDean } = useQuery({
+    queryKey: ["eligibleDeanStaff", facultyId],
+    queryFn: () =>
+      graphqlClient.request<{
+        eligibleDeanStaff: {
+          id: string;
+          staffNumber: string;
+          user: {
+            id: string;
+            name: string;
+            email: string;
+            image?: string | null;
+            role?: string;
+            managedFaculty?: { id: string; name: string; code: string } | null;
+          };
+        }[];
+      }>(GET_ELIGIBLE_DEAN_STAFF, { facultyId: facultyId! }),
+    enabled: useDeanEligible && !!facultyId,
+  });
+
+  const staffs = React.useMemo((): StaffOption[] => {
+    if (useHodEligible && eligibleHodData?.eligibleHodStaff) {
+      return eligibleHodData.eligibleHodStaff.map((s) => ({
+        value: s.user.id,
+        label: s.user.name,
+        email: s.user.email,
+        image: s.user.image,
+        staffNumber: s.staffNumber,
+        tag: s.user.managedDepartment
+          ? `Assigned to ${s.user.managedDepartment.name}`
+          : "Available",
+      }));
+    }
+    if (useDeanEligible && eligibleDeanData?.eligibleDeanStaff) {
+      return eligibleDeanData.eligibleDeanStaff.map((s) => ({
+        value: s.user.id,
+        label: s.user.name,
+        email: s.user.email,
+        image: s.user.image,
+        staffNumber: s.staffNumber,
+        tag: s.user.managedFaculty
+          ? `Assigned to ${s.user.managedFaculty.name}`
+          : "Available",
+      }));
+    }
     return (
       staffData?.staffs?.map((s) => ({
         value: s.user.id,
@@ -85,7 +171,9 @@ export function AssignRoleDialog({
         staffNumber: s.staffNumber,
       })) || []
     );
-  }, [staffData]);
+  }, [useHodEligible, useDeanEligible, staffData, eligibleHodData, eligibleDeanData]);
+
+  const isLoading = useHodEligible ? isLoadingHod : useDeanEligible ? isLoadingDean : isLoadingStaffs;
 
   const handleAssign = async () => {
     if (!value) return;
@@ -104,12 +192,13 @@ export function AssignRoleDialog({
     }
   };
 
-  const selectedStaff =
+  const selectedStaff: StaffOption | null =
     staffs.find((s) => s.value === value) ||
     (currentAssignee
       ? {
           value: currentAssignee.id,
           label: currentAssignee.name,
+          email: "",
           image: currentAssignee.image,
         }
       : null);
@@ -148,9 +237,16 @@ export function AssignRoleDialog({
                           {selectedStaff.label}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {(selectedStaff as any).staffNumber ||
-                            selectedStaff.label}
+                          {selectedStaff.staffNumber || selectedStaff.email}
                         </span>
+                        {selectedStaff.tag && (
+                          <Badge
+                            variant={selectedStaff.tag === "Available" ? "default" : "secondary"}
+                            className="mt-1 w-fit text-[10px]"
+                          >
+                            {selectedStaff.tag}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -163,12 +259,24 @@ export function AssignRoleDialog({
                 <Command>
                   <CommandInput placeholder={`Search staff...`} />
                   <CommandList>
-                    <CommandEmpty>No staff found.</CommandEmpty>
-                    <CommandGroup>
-                      {staffs.map((staff) => (
+                    {isLoading ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        Loading staff...
+                      </div>
+                    ) : (
+                      <>
+                        <CommandEmpty>
+                          {useHodEligible
+                            ? "No staff with HOD role in this department. Assign the HOD role to a staff member in this department first."
+                            : useDeanEligible
+                              ? "No staff with Dean role in this faculty. Assign the Dean role to a staff member in this faculty first."
+                              : "No staff found."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {staffs.map((staff) => (
                         <CommandItem
                           key={staff.value}
-                          value={staff.label} // Search by name
+                          value={staff.label}
                           onSelect={() => {
                             setValue(staff.value);
                             setPopoverOpen(false);
@@ -176,29 +284,43 @@ export function AssignRoleDialog({
                         >
                           <Check
                             className={cn(
-                              "mr-2 h-4 w-4",
+                              "mr-2 h-4 w-4 shrink-0",
                               value === staff.value
                                 ? "opacity-100"
                                 : "opacity-0",
                             )}
                           />
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Avatar className="h-8 w-8 shrink-0">
                               <AvatarImage src={staff.image || ""} />
                               <AvatarFallback>
                                 {staff.label.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col">
-                              <span>{staff.label}</span>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="font-medium">{staff.label}</span>
                               <span className="text-xs text-muted-foreground">
                                 {staff.staffNumber} • {staff.email}
                               </span>
+                              {staff.tag && (
+                                <Badge
+                                  variant={
+                                    staff.tag === "Available"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="mt-1 w-fit text-[10px]"
+                                >
+                                  {staff.tag}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
+                          ))}
+                        </CommandGroup>
+                      </>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>

@@ -90,6 +90,21 @@ export const REMOVE_COURSE = gql`
   }
 `;
 
+export const GET_ELIGIBLE_COURSE_INSTRUCTORS = gql`
+  query GetEligibleCourseInstructors($courseId: ID!) {
+    eligibleCourseInstructors(courseId: $courseId) {
+      id
+      staffNumber
+      user {
+        id
+        name
+        email
+        image
+      }
+    }
+  }
+`;
+
 export const ASSIGN_INSTRUCTOR = gql`
   mutation AssignInstructor($input: AssignInstructorInput!) {
     assignInstructor(input: $input) {

@@ -1,13 +1,31 @@
-import { Args, Mutation, Resolver, Context } from '@nestjs/graphql';
+import { Args, Mutation, Resolver, Context, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthGuard, AuthenticatedRequest } from '../../common/auth/auth.guard';
 import { User } from '../../common/entities/user.entity';
+import { Department } from '../department/entities/department.entity';
+import { Faculty } from '../faculty/entities/faculty.entity';
 
 @Resolver(() => User)
 @UseGuards(AuthGuard)
 export class UserResolver {
   constructor(private prisma: PrismaService) {}
+
+  @ResolveField(() => Department, { nullable: true })
+  async managedDepartment(@Parent() user: User) {
+    return this.prisma.department.findUnique({
+      where: { hodId: user.id },
+      select: { id: true, name: true, code: true },
+    });
+  }
+
+  @ResolveField(() => Faculty, { nullable: true })
+  async managedFaculty(@Parent() user: User) {
+    return this.prisma.faculty.findUnique({
+      where: { deanId: user.id },
+      select: { id: true, name: true, code: true },
+    });
+  }
 
   @Mutation(() => User)
   async updateProfileImage(
@@ -34,6 +52,7 @@ export class UserResolver {
       ...updatedUser,
       image: updatedUser.image ?? undefined,
       gender: updatedUser.gender ?? undefined,
+      role: updatedUser.role ?? undefined,
     };
   }
 }
